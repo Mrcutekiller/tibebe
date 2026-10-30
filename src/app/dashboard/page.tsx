@@ -9,7 +9,7 @@ import {
   TrendingUp, Zap, LayoutDashboard, Library,
   ShoppingBag, Settings, HelpCircle, LogOut, GraduationCap,
   Wallet, Plus, ShoppingCart, HelpCircle as QuizIcon, Check, X, RefreshCw,
-  Star, User, Download, Printer, QrCode, ArrowUpRight, Flame, Sparkles
+  Star, User, Download, Printer, QrCode, ArrowUpRight, Flame, Sparkles, Trophy
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
