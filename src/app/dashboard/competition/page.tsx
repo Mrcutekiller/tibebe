@@ -11,6 +11,8 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import {
   COURSE_COMPETITION_QUIZZES,
+  COMPETITION_TEST_FEE,
+  getStudentPersonalizedChallenges,
   MONTHLY_PRIZES,
   POINT_REWARDS,
   getLeaderboardData,
@@ -23,7 +25,13 @@ import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
 
 export default function CompetitionLeaderboardPage() {
-  const { user } = useAuth();
+  const { user, walletBalance, payWithWallet } = useAuth();
+  const [challenges, setChallenges] = useState<CourseQuizChallenge[]>([]);
+  const [pendingQuizToPay, setPendingQuizToPay] = useState<CourseQuizChallenge | null>(null);
+
+  useEffect(() => {
+    setChallenges(getStudentPersonalizedChallenges(user?.id));
+  }, [user?.id]);
 
   // Active sub-view: 'leaderboard' or 'quiz'
   const [activeTab, setActiveTab] = useState<'leaderboard' | 'quiz'>('leaderboard');
@@ -114,6 +122,54 @@ export default function CompetitionLeaderboardPage() {
     setQuizScore(null);
     setSecondsRemaining(quiz.timeSeconds || 180);
     setActiveTab('quiz');
+  };
+
+  const handleRequestStartQuiz = (quiz: CourseQuizChallenge) => {
+    if (!user) {
+      toast.error('Please sign in or create an account to enter the competition test.');
+      return;
+    }
+    if (walletBalance < COMPETITION_TEST_FEE) {
+      toast.error(`Competition Test entry requires 5 ETB. Your balance is ${walletBalance} ETB. Please deposit 20 ETB.`);
+      return;
+    }
+    setPendingQuizToPay(quiz);
+  };
+
+  const handlePayAndEnter = () => {
+    if (!pendingQuizToPay) return;
+    if (walletBalance < COMPETITION_TEST_FEE) {
+      toast.error('Insufficient wallet balance. 5 ETB required.');
+      return;
+    }
+
+    const success = payWithWallet(COMPETITION_TEST_FEE, [pendingQuizToPay.id]);
+    if (success) {
+      // Record verification / order for Admin Total Sales (+5 ETB)
+      try {
+        const orderId = `ORD-CMP-${Date.now().toString().slice(-6)}`;
+        const orders = JSON.parse(localStorage.getItem('tibeb_orders') || '[]');
+        orders.unshift({
+          id: orderId,
+          date: new Date().toISOString().split('T')[0],
+          items: [`Competition Test Entry: ${pendingQuizToPay.courseTitle}`],
+          total: COMPETITION_TEST_FEE,
+          status: 'Paid',
+          paymentMethod: 'Student Wallet',
+          reference: orderId,
+        });
+        localStorage.setItem('tibeb_orders', JSON.stringify(orders));
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('tibeb_verifications_updated'));
+      } catch {}
+
+      toast.success('🎉 5 ETB Entry Fee Paid! Your unique randomized challenge has started.', { duration: 4000 });
+      const q = pendingQuizToPay;
+      setPendingQuizToPay(null);
+      handleStartQuiz(q);
+    } else {
+      toast.error('Payment failed. Please verify your wallet balance.');
+    }
   };
 
   const handleSelectOption = (questionId: string, optionKey: string) => {
@@ -333,7 +389,7 @@ export default function CompetitionLeaderboardPage() {
               onClick={() => {
                 setActiveTab('quiz');
                 if (COURSE_COMPETITION_QUIZZES.length > 0) {
-                  handleStartQuiz(COURSE_COMPETITION_QUIZZES[0]);
+                  handleRequestStartQuiz(challenges[0] || COURSE_COMPETITION_QUIZZES[0]);
                 }
               }}
               className="px-4 py-2 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm"
@@ -399,7 +455,7 @@ export default function CompetitionLeaderboardPage() {
             )}
           >
             <BookOpen size={14} />
-            Course Quizzes ({COURSE_COMPETITION_QUIZZES.length})
+            Course Quizzes ({challenges.length})
           </button>
         </div>
 
@@ -450,7 +506,7 @@ export default function CompetitionLeaderboardPage() {
                     onClick={() => {
                       setActiveTab('quiz');
                       if (COURSE_COMPETITION_QUIZZES.length > 0) {
-                        handleStartQuiz(COURSE_COMPETITION_QUIZZES[0]);
+                        handleRequestStartQuiz(challenges[0] || COURSE_COMPETITION_QUIZZES[0]);
                       }
                     }}
                     className="px-5 py-2.5 rounded-xl bg-[#0B5D3B] text-white text-xs font-bold shadow-md hover:bg-emerald-800 transition-all inline-flex items-center gap-2 cursor-pointer"
@@ -576,7 +632,7 @@ export default function CompetitionLeaderboardPage() {
                   <button
                     onClick={() => {
                       setActiveTab('quiz');
-                      if (COURSE_COMPETITION_QUIZZES[0]) handleStartQuiz(COURSE_COMPETITION_QUIZZES[0]);
+                      if (COURSE_COMPETITION_QUIZZES[0]) handleRequestStartQuiz(challenges[0] || COURSE_COMPETITION_QUIZZES[0]);
                     }}
                     className="text-[#0B5D3B] font-bold hover:underline flex items-center gap-1 cursor-pointer"
                   >
@@ -604,7 +660,7 @@ export default function CompetitionLeaderboardPage() {
                 </p>
 
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mt-5">
-                  {COURSE_COMPETITION_QUIZZES.map((quiz) => (
+                  {challenges.map((quiz) => (
                     <div
                       key={quiz.id}
                       className="rounded-2xl border border-gray-200 p-5 bg-[#FAF7F0]/40 hover:border-[#0B5D3B] transition-all flex flex-col justify-between"
@@ -816,6 +872,92 @@ export default function CompetitionLeaderboardPage() {
               </div>
             )
           )}
+        </div>
+      )}
+
+
+      {/* 5 ETB Competition Test Entry Confirmation Modal */}
+      {pendingQuizToPay && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-in fade-in">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-gray-100 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                  <Trophy size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-ink text-base">Enter Competition Test</h3>
+                  <p className="text-[11px] text-gray-400">Monthly Cash Prize Qualifier</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setPendingQuizToPay(null)}
+                className="p-1 rounded-full text-gray-400 hover:text-ink hover:bg-gray-100 transition-colors cursor-pointer"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-emerald-50/70 border border-emerald-200/80 space-y-2">
+              <span className="text-[10px] uppercase tracking-wider font-extrabold text-emerald-800 block">
+                Selected Challenge
+              </span>
+              <h4 className="font-black text-ink text-sm">{pendingQuizToPay.courseTitle}</h4>
+              <p className="text-xs text-gray-600">
+                Course: <strong className="text-ink">{pendingQuizToPay.courseCode}</strong> • {pendingQuizToPay.department}
+              </p>
+              <div className="flex items-center gap-2 pt-1">
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-emerald-300 text-emerald-800">
+                  ⚡ 5 Randomized Questions
+                </span>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-md bg-white border border-emerald-300 text-emerald-800">
+                  ⏱️ 3 Minutes
+                </span>
+              </div>
+            </div>
+
+            {/* Price & Balance */}
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 flex items-center justify-between">
+              <div>
+                <span className="text-[10px] text-gray-400 uppercase font-bold block">Entry Fee</span>
+                <span className="text-2xl font-black text-[#0B5D3B]">5 ETB</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[10px] text-gray-400 uppercase font-bold block">Your Balance</span>
+                <span className="text-sm font-black text-ink">{walletBalance} ETB</span>
+              </div>
+            </div>
+
+            <div className="text-[11px] text-gray-500 space-y-1">
+              <p className="flex items-center gap-1.5 font-medium">
+                <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0" />
+                <span>Each participant receives a <strong>different randomized test</strong> derived from course exam papers.</span>
+              </p>
+              <p className="flex items-center gap-1.5 font-medium">
+                <CheckCircle2 size={13} className="text-emerald-600 flex-shrink-0" />
+                <span>Earn up to <strong>150 Leaderboard Points</strong> to compete for the 1,000 ETB monthly prize.</span>
+              </p>
+            </div>
+
+            <div className="flex items-center gap-3 pt-2">
+              <button
+                type="button"
+                onClick={() => setPendingQuizToPay(null)}
+                className="flex-1 py-3 rounded-2xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-colors cursor-pointer"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={handlePayAndEnter}
+                className="flex-1 py-3 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+              >
+                <Zap size={14} className="fill-white" />
+                <span>Pay 5 ETB & Begin</span>
+              </button>
+            </div>
+          </div>
         </div>
       )}
 

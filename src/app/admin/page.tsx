@@ -39,8 +39,15 @@ import {
   type ChatMessage
 } from '@/lib/support-chat';
 import toast from 'react-hot-toast';
+import {
+  WithdrawalRequest,
+  getStoredWithdrawals,
+  approveWithdrawal,
+  rejectWithdrawal
+} from '@/lib/withdrawal-store';
+import { addNotification } from '@/lib/notification-store';
 
-type AdminTab = 'overview' | 'verifications' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
+type AdminTab = 'overview' | 'verifications' | 'withdrawals' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
 
 interface SupportTicket {
   id: string;
@@ -114,6 +121,30 @@ export default function AdminPortalPage() {
 
   // Coupons State
   const [coupons, setCoupons] = useState<Coupon[]>([]);
+
+  // Withdrawals State
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [approvingWithdrawal, setApprovingWithdrawal] = useState<WithdrawalRequest | null>(null);
+  const [rejectingWithdrawal, setRejectingWithdrawal] = useState<WithdrawalRequest | null>(null);
+  const [payoutScreenshotUrl, setPayoutScreenshotUrl] = useState('');
+  const [withdrawalRejectReason, setWithdrawalRejectReason] = useState('Account name mismatch on bank record');
+
+  const loadWithdrawals = () => {
+    setWithdrawals(getStoredWithdrawals());
+  };
+
+  useEffect(() => {
+    loadWithdrawals();
+    const handleWdUpdate = () => loadWithdrawals();
+    window.addEventListener('tibeb_withdrawals_updated', handleWdUpdate);
+    window.addEventListener('storage', handleWdUpdate);
+    return () => {
+      window.removeEventListener('tibeb_withdrawals_updated', handleWdUpdate);
+      window.removeEventListener('storage', handleWdUpdate);
+    };
+  }, []);
+
+  const pendingWithdrawalsCount = withdrawals.filter(w => w.status === 'pending').length;
   const [showCreateCouponModal, setShowCreateCouponModal] = useState(false);
   const [newCouponCode, setNewCouponCode] = useState('');
   const [newCouponType, setNewCouponType] = useState<'percentage' | 'fixed'>('percentage');
@@ -846,6 +877,12 @@ export default function AdminPortalPage() {
     } catch {}
 
     toast.success(`🎉 Published ${newExam.code} - ${newExam.title} for ${newExam.university} at 20 ETB!`);
+    addNotification({
+      title: `📢 New Exam Published: ${newExam.title} (${newExam.university})`,
+      message: `Official ${newExam.exam_type} Exam for ${newExam.department} is now live with verified answer keys (20 ETB).`,
+      type: 'exam',
+      link: `/catalog?dept=${encodeURIComponent(newExam.department)}`,
+    });
     setExamTitle('');
     setExamCode('');
   };
@@ -1040,6 +1077,12 @@ export default function AdminPortalPage() {
                 icon: QrCode,
                 label: 'Verifications',
                 badge: pendingCount > 0 ? pendingCount : undefined
+              },
+              {
+                id: 'withdrawals' as AdminTab,
+                icon: ArrowUpRight,
+                label: 'Withdrawals',
+                badge: pendingWithdrawalsCount > 0 ? pendingWithdrawalsCount : undefined
               },
               { id: 'ai' as AdminTab, icon: Sparkles, label: 'AI Hub', isNew: true },
               { id: 'exams' as AdminTab, icon: FileText, label: 'Exams' },
@@ -1690,6 +1733,163 @@ export default function AdminPortalPage() {
 
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB 2.5: WITHDRAWALS & PAYOUT MANAGEMENT                                  */}
+        {/* ========================================================================= */}
+        {activeTab === 'withdrawals' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black text-ink">Student Wallet Withdrawals</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-800">
+                      Transfer Screenshot Approval
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Process student cash withdrawal requests via Telebirr or CBE. Attach payout transfer screenshot to notify students.
+                  </p>
+                </div>
+              </div>
+
+              {/* Stat Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Pending Payouts</span>
+                  <span className="text-2xl font-black text-amber-600 mt-1 block">{pendingWithdrawalsCount}</span>
+                  <span className="text-[10px] text-gray-400 font-semibold mt-0.5 block">Awaiting transfer</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total Disbursed</span>
+                  <span className="text-2xl font-black text-emerald-800 mt-1 block">
+                    ETB {withdrawals.filter(w => w.status === 'approved').reduce((sum, w) => sum + w.amount, 0).toLocaleString()}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 block">Approved with screenshot</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Rejected & Refunded</span>
+                  <span className="text-2xl font-black text-rose-700 mt-1 block">
+                    {withdrawals.filter(w => w.status === 'rejected').length}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-semibold mt-0.5 block">Returned to student wallet</span>
+                </div>
+              </div>
+
+              {/* Withdrawals List */}
+              {withdrawals.length === 0 ? (
+                <div className="py-16 text-center bg-[#F8FAFC] rounded-3xl border border-dashed border-gray-200 space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-700 mx-auto flex items-center justify-center">
+                    <ArrowUpRight size={26} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-ink text-sm">No Withdrawal Requests Yet</h3>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                      When students request to withdraw deposited funds back to Telebirr or CBE, payouts will appear here for processing and screenshot upload.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {withdrawals.map((w) => {
+                    const isPending = w.status === 'pending';
+                    const isApproved = w.status === 'approved';
+                    const isRejected = w.status === 'rejected';
+
+                    return (
+                      <div
+                        key={w.id}
+                        className={`p-5 rounded-3xl border transition-all ${
+                          isPending ? 'bg-amber-50/20 border-amber-200' : 'bg-white border-gray-200'
+                        }`}
+                      >
+                        <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <div className="flex items-center gap-2">
+                              <span className="font-mono font-bold text-xs text-ink">{w.id}</span>
+                              <span
+                                className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  isApproved
+                                    ? 'bg-emerald-100 text-emerald-800'
+                                    : isRejected
+                                    ? 'bg-rose-100 text-rose-800'
+                                    : 'bg-amber-100 text-amber-800 animate-pulse'
+                                }`}
+                              >
+                                {isApproved ? 'Approved & Transferred' : isRejected ? 'Rejected & Refunded' : 'Pending Transfer'}
+                              </span>
+                              <span className="text-xs text-gray-400">• {new Date(w.createdAt).toLocaleDateString()}</span>
+                            </div>
+
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-black text-ink text-sm">{w.userName}</h4>
+                              <span className="text-xs text-gray-400 font-semibold">{w.userEmail}</span>
+                            </div>
+
+                            <div className="text-xs text-gray-600 flex flex-wrap items-center gap-3 pt-1">
+                              <span>Method: <strong className="text-ink">{w.paymentMethod.toUpperCase()}</strong></span>
+                              <span>Account: <strong className="text-ink font-mono">{w.accountNumber}</strong></span>
+                              <span>Account Holder: <strong className="text-ink">{w.accountName}</strong></span>
+                            </div>
+
+                            {w.rejectionReason && (
+                              <p className="text-xs text-rose-700 font-semibold mt-1">
+                                Rejection Reason: {w.rejectionReason} (Amount refunded to student)
+                              </p>
+                            )}
+                          </div>
+
+                          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full lg:w-auto justify-between border-t lg:border-t-0 pt-3 lg:pt-0 border-gray-100">
+                            <div className="text-right">
+                              <span className="text-xs text-gray-400 block">Payout Amount</span>
+                              <span className="text-xl font-black text-ink">ETB {w.amount}</span>
+                            </div>
+
+                            {isPending && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  type="button"
+                                  onClick={() => {
+                                    setApprovingWithdrawal(w);
+                                    setPayoutScreenshotUrl('/sample-receipts/telebirr-real.jpg');
+                                  }}
+                                  className="px-4 py-2 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-extrabold text-xs shadow-xs transition-all flex items-center gap-1.5 cursor-pointer"
+                                >
+                                  <CheckCircle size={14} />
+                                  Approve & Upload Proof
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setRejectingWithdrawal(w)}
+                                  className="px-3 py-2 rounded-xl border border-rose-200 text-rose-700 hover:bg-rose-50 text-xs font-bold transition-all cursor-pointer"
+                                >
+                                  Reject & Refund
+                                </button>
+                              </div>
+                            )}
+
+                            {isApproved && w.payoutScreenshot && (
+                              <button
+                                type="button"
+                                onClick={() => setZoomImage(w.payoutScreenshot || null)}
+                                className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-50 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                              >
+                                <Eye size={13} className="text-emerald-600" />
+                                <span>Inspect Transfer Proof</span>
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
 
         {/* ========================================================================= */}
         {/* TAB 3: AI HUB ("COMING SOON" Feature)                                    */}
@@ -3418,6 +3618,181 @@ export default function AdminPortalPage() {
           </div>
         </div>
       )}
+
+            {/* ========================================================================= */}
+      {/* MODAL 3.5: APPROVE WITHDRAWAL & UPLOAD TRANSFER SCREENSHOT                 */}
+      {/* ========================================================================= */}
+      {approvingWithdrawal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-gray-100 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center font-bold">
+                  <CheckCircle size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-ink text-base">Approve & Complete Payout</h3>
+                  <p className="text-[11px] text-gray-400">Attach proof of transfer to notify student</p>
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => setApprovingWithdrawal(null)}
+                className="p-1 rounded-full text-gray-400 hover:text-ink hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200 text-xs space-y-1.5">
+              <div className="flex justify-between">
+                <span className="text-gray-500">Student:</span>
+                <strong className="text-ink">{approvingWithdrawal.userName}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Payout Amount:</span>
+                <strong className="text-[#0B5D3B] font-black text-sm">ETB {approvingWithdrawal.amount}</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Method & Account:</span>
+                <strong className="text-ink">{approvingWithdrawal.paymentMethod.toUpperCase()} ({approvingWithdrawal.accountNumber})</strong>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-gray-500">Recipient Name:</span>
+                <strong className="text-ink">{approvingWithdrawal.accountName}</strong>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
+                Upload Transfer Receipt Screenshot (Telebirr / CBE)
+              </label>
+              
+              <div className="space-y-3">
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      const reader = new FileReader();
+                      reader.onload = () => {
+                        if (typeof reader.result === 'string') {
+                          setPayoutScreenshotUrl(reader.result);
+                        }
+                      };
+                      reader.readAsDataURL(file);
+                    }
+                  }}
+                  className="w-full text-xs text-gray-500 file:mr-3 file:py-2 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-bold file:bg-[#0B5D3B] file:text-white hover:file:bg-emerald-800"
+                />
+
+                {/* Preview */}
+                {payoutScreenshotUrl && (
+                  <div className="relative rounded-2xl overflow-hidden border border-gray-200 max-h-48 bg-gray-900 flex items-center justify-center">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img
+                      src={payoutScreenshotUrl}
+                      alt="Transfer Receipt Preview"
+                      className="max-h-48 w-auto object-contain mx-auto"
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setApprovingWithdrawal(null)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  if (!payoutScreenshotUrl) {
+                    toast.error('Please upload screenshot proof of payment transfer.');
+                    return;
+                  }
+                  approveWithdrawal(approvingWithdrawal.id, payoutScreenshotUrl, user?.email || 'tibebexams@gmail.com');
+                  loadWithdrawals();
+                  setApprovingWithdrawal(null);
+                  toast.success(`Withdrawal ${approvingWithdrawal.id} marked as Transferred! Student notified.`, { icon: '💸' });
+                }}
+                className="px-5 py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-black shadow-md transition-all flex items-center gap-1.5"
+              >
+                <CheckCircle size={15} /> Confirm Payout & Send Proof
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* MODAL 3.6: REJECT WITHDRAWAL DIALOG */}
+      {rejectingWithdrawal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-md w-full p-6 sm:p-8 space-y-5 shadow-2xl border border-gray-100 animate-in zoom-in-95">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2 text-rose-700 font-black">
+                <AlertCircle size={20} />
+                <span>Reject Withdrawal ({rejectingWithdrawal.id})</span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setRejectingWithdrawal(null)}
+                className="p-1 rounded-full text-gray-400 hover:text-ink hover:bg-gray-100"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-3 bg-rose-50 rounded-2xl border border-rose-200 text-xs text-rose-900 leading-relaxed">
+              Rejecting will automatically return <strong>ETB {rejectingWithdrawal.amount}</strong> back to student <strong>{rejectingWithdrawal.userName}</strong>&apos;s wallet balance and notify them.
+            </div>
+
+            <div>
+              <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
+                Reason for Rejection
+              </label>
+              <select
+                value={withdrawalRejectReason}
+                onChange={(e) => setWithdrawalRejectReason(e.target.value)}
+                className="w-full p-3 rounded-xl border border-gray-200 text-xs font-semibold focus:outline-none focus:ring-2 focus:ring-rose-500 bg-[#F8FAFC]"
+              >
+                <option value="Account name mismatch on bank record">Account name mismatch on bank/telebirr record</option>
+                <option value="Invalid phone number or bank account number">Invalid phone number or bank account number</option>
+                <option value="Bank system network downtime / unable to transfer">Bank system network downtime / unable to transfer</option>
+                <option value="Suspicious transaction activity flagged">Suspicious transaction activity flagged</option>
+              </select>
+            </div>
+
+            <div className="flex items-center justify-end gap-3 pt-3 border-t border-gray-100">
+              <button
+                type="button"
+                onClick={() => setRejectingWithdrawal(null)}
+                className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  rejectWithdrawal(rejectingWithdrawal.id, withdrawalRejectReason, user?.email || 'tibebexams@gmail.com');
+                  loadWithdrawals();
+                  setRejectingWithdrawal(null);
+                  toast.error(`Withdrawal ${rejectingWithdrawal.id} rejected. ETB ${rejectingWithdrawal.amount} refunded to student.`, { icon: '↩️' });
+                }}
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md transition-all"
+              >
+                Confirm & Refund Student
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       {/* ========================================================================= */}
       {/* MODAL 4: CREATE COUPON (LIMITED USERS & LIMITED TIME)                     */}

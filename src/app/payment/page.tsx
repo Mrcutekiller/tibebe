@@ -7,7 +7,7 @@ import {
   Wallet, ArrowLeft, CheckCircle2, XCircle, UploadCloud,
   Copy, Check, ShieldCheck, Sparkles, RefreshCw, QrCode,
   AlertTriangle, ArrowRight, ExternalLink, FileCheck, Layers,
-  ChevronRight, Smartphone, Building, BookOpen
+  ChevronRight, Smartphone, Building, BookOpen, Eye, X
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -21,6 +21,13 @@ import {
 } from '@/lib/payment-verification';
 import toast from 'react-hot-toast';
 import { cn } from '@/lib/utils';
+import {
+  MIN_DEPOSIT_AMOUNT,
+  MIN_WITHDRAWAL_AMOUNT,
+  requestWithdrawal,
+  getStoredWithdrawals,
+  WithdrawalRequest
+} from '@/lib/withdrawal-store';
 
 type PaymentGateway = 'telebirr' | 'cbe';
 type Step = 1 | 2 | 3;
@@ -50,6 +57,36 @@ function PaymentContent() {
   const [gateway, setGateway] = useState<PaymentGateway>(initialMethod);
   const [amount, setAmount] = useState<number>(queryAmount > 0 ? queryAmount : 100);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+
+  // Mode: Deposit vs Withdraw
+  const initialTab = searchParams.get('tab') === 'withdraw' ? 'withdraw' : 'deposit';
+  const [activeMode, setActiveMode] = useState<'deposit' | 'withdraw'>(initialTab);
+
+  // Withdrawal form state
+  const [withdrawAmount, setWithdrawAmount] = useState<number>(20);
+  const [withdrawMethod, setWithdrawMethod] = useState<'telebirr' | 'cbe'>('telebirr');
+  const [withdrawAccount, setWithdrawAccount] = useState('');
+  const [withdrawName, setWithdrawName] = useState(user?.name || '');
+  const [withdrawals, setWithdrawals] = useState<WithdrawalRequest[]>([]);
+  const [zoomPayoutImage, setZoomPayoutImage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const loadWd = () => {
+      const list = getStoredWithdrawals();
+      if (user?.id) {
+        setWithdrawals(list.filter(w => w.userId === user.id || w.userEmail === user.email));
+      } else {
+        setWithdrawals(list);
+      }
+    };
+    loadWd();
+    window.addEventListener('tibeb_withdrawals_updated', loadWd);
+    window.addEventListener('storage', loadWd);
+    return () => {
+      window.removeEventListener('tibeb_withdrawals_updated', loadWd);
+      window.removeEventListener('storage', loadWd);
+    };
+  }, [user]);
 
   // Upload and Analysis States
   const [receiptImage, setReceiptImage] = useState<string | null>(null);
@@ -275,6 +312,38 @@ function PaymentContent() {
           </div>
         </div>
 
+        {/* Mode Switcher: Deposit Funds vs Withdraw Balance */}
+        <div className="bg-white p-1.5 rounded-2xl border border-stone-200 flex items-center gap-1.5 shadow-sm">
+          <button
+            type="button"
+            onClick={() => setActiveMode('deposit')}
+            className={cn(
+              'flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer',
+              activeMode === 'deposit'
+                ? 'bg-[#0B5D3B] text-white shadow-sm'
+                : 'text-gray-500 hover:text-ink'
+            )}
+          >
+            <Wallet size={15} />
+            <span>Deposit Funds (Min 20 ETB)</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => setActiveMode('withdraw')}
+            className={cn(
+              'flex-1 py-3 px-4 rounded-xl font-extrabold text-xs transition-all flex items-center justify-center gap-2 cursor-pointer',
+              activeMode === 'withdraw'
+                ? 'bg-[#0B5D3B] text-white shadow-sm'
+                : 'text-gray-500 hover:text-ink'
+            )}
+          >
+            <ArrowRight size={15} />
+            <span>Withdraw Balance (Min 20 ETB)</span>
+          </button>
+        </div>
+
+        {activeMode === 'deposit' && (
+          <>
         {/* Step Progress Tracker */}
         <div className="bg-white rounded-3xl p-4 shadow-sm border border-stone-200 flex items-center justify-between text-xs font-bold">
           <div className={cn('flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all', currentStep === 1 ? 'bg-[#0B5D3B] text-white shadow-sm' : 'text-gray-400')}>
@@ -492,7 +561,7 @@ function PaymentContent() {
               <div className="relative">
                 <input
                   type="number"
-                  min="10"
+                  min="20"
                   step="5"
                   value={amount || ''}
                   onChange={(e) => setAmount(Math.max(0, parseInt(e.target.value, 10) || 0))}
@@ -507,7 +576,7 @@ function PaymentContent() {
 
               {/* Quick Select Preset Pills */}
               <div className="grid grid-cols-5 gap-2 pt-1">
-                {[50, 100, 200, 500, 1000].map((amt) => (
+                {[20, 50, 100, 200, 500].map((amt) => (
                   <button
                     key={amt}
                     type="button"
@@ -552,8 +621,8 @@ function PaymentContent() {
               <button
                 type="button"
                 onClick={() => {
-                  if (!amount || amount <= 0) {
-                    toast.error('Please enter a valid deposit amount (e.g. 50 ETB or more).');
+                  if (!amount || amount < MIN_DEPOSIT_AMOUNT) {
+                    toast.error(`Minimum deposit amount is ${MIN_DEPOSIT_AMOUNT} ETB.`);
                     return;
                   }
                   setCurrentStep(3);
@@ -847,6 +916,293 @@ function PaymentContent() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        </>
+        )}
+
+        {/* =========================================================================
+            WITHDRAW TAB: REQUEST WITHDRAWAL & VIEW OFFICIAL PAYOUT RECEIPTS
+           ========================================================================= */}
+        {activeMode === 'withdraw' && (
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-stone-200/80 space-y-6 animate-in fade-in duration-200">
+            <div>
+              <div className="flex items-center gap-2">
+                <span className="text-[11px] font-black uppercase tracking-wider text-amber-700 bg-amber-50 px-2.5 py-1 rounded-md border border-amber-200">
+                  Wallet Withdrawal
+                </span>
+                <span className="text-[11px] font-bold text-gray-400">
+                  Minimum: {MIN_WITHDRAWAL_AMOUNT} ETB
+                </span>
+              </div>
+              <h1 className="text-2xl sm:text-3xl font-black text-ink mt-2">
+                Withdraw Deposited Funds
+              </h1>
+              <p className="text-xs text-gray-500 mt-1">
+                Request a payout to your Telebirr phone number or CBE Bank account. Admin reviews and uploads official transfer screenshot proof.
+              </p>
+            </div>
+
+            {/* Current Balance Banner */}
+            <div className="p-5 rounded-3xl bg-gradient-to-br from-[#12202B] via-[#0B5D3B] to-[#12202B] text-white flex items-center justify-between shadow-md">
+              <div>
+                <span className="text-xs uppercase tracking-wider text-emerald-200 font-bold block">
+                  Available Wallet Balance
+                </span>
+                <span className="text-3xl font-black text-white">{walletBalance} ETB</span>
+              </div>
+              <div className="text-right">
+                <span className="text-[11px] bg-white/10 px-3 py-1.5 rounded-xl font-bold border border-white/20 inline-block">
+                  {walletBalance >= MIN_WITHDRAWAL_AMOUNT ? 'Eligible for Payout' : `Need ${MIN_WITHDRAWAL_AMOUNT - walletBalance} ETB Min`}
+                </span>
+              </div>
+            </div>
+
+            {/* Withdrawal Form */}
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!user) {
+                  toast.error('Please sign in to withdraw funds.');
+                  return;
+                }
+                const res = requestWithdrawal({
+                  userId: user.id,
+                  userName: withdrawName || user.name,
+                  userPhone: user.phone || withdrawAccount,
+                  userEmail: user.email || '',
+                  paymentMethod: withdrawMethod,
+                  accountNumber: withdrawAccount,
+                  accountName: withdrawName,
+                  amount: withdrawAmount,
+                  currentBalance: walletBalance,
+                });
+                if (!res.success) {
+                  toast.error(res.error || 'Withdrawal failed');
+                } else {
+                  toast.success(`Withdrawal request of ${withdrawAmount} ETB submitted! Admin will process transfer.`, { duration: 5000 });
+                  setWithdrawAccount('');
+                }
+              }}
+              className="space-y-4"
+            >
+              {/* Payment Method Selector */}
+              <div>
+                <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-2">
+                  Receive Payout Via
+                </label>
+                <div className="grid grid-cols-2 gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawMethod('telebirr')}
+                    className={cn(
+                      'p-4 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer',
+                      withdrawMethod === 'telebirr'
+                        ? 'border-emerald-600 bg-emerald-50/60 ring-2 ring-emerald-500/10'
+                        : 'border-stone-200 hover:border-stone-300'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-blue-600 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                        TB
+                      </div>
+                      <div className="text-left">
+                        <span className="font-extrabold text-ink text-xs block">Telebirr</span>
+                        <span className="text-[10px] text-gray-400">Mobile Money</span>
+                      </div>
+                    </div>
+                    {withdrawMethod === 'telebirr' && <Check size={16} className="text-emerald-700 stroke-[3]" />}
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setWithdrawMethod('cbe')}
+                    className={cn(
+                      'p-4 rounded-2xl border-2 flex items-center justify-between transition-all cursor-pointer',
+                      withdrawMethod === 'cbe'
+                        ? 'border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/10'
+                        : 'border-stone-200 hover:border-stone-300'
+                    )}
+                  >
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-xl bg-purple-700 text-white font-black text-xs flex items-center justify-center shadow-xs">
+                        CBE
+                      </div>
+                      <div className="text-left">
+                        <span className="font-extrabold text-ink text-xs block">Commercial Bank</span>
+                        <span className="text-[10px] text-gray-400">CBE Account</span>
+                      </div>
+                    </div>
+                    {withdrawMethod === 'cbe' && <Check size={16} className="text-purple-700 stroke-[3]" />}
+                  </button>
+                </div>
+              </div>
+
+              {/* Amount to withdraw */}
+              <div>
+                <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1">
+                  Withdrawal Amount (ETB)
+                </label>
+                <div className="relative">
+                  <input
+                    type="number"
+                    min={MIN_WITHDRAWAL_AMOUNT}
+                    max={walletBalance}
+                    required
+                    value={withdrawAmount || ''}
+                    onChange={(e) => setWithdrawAmount(Math.max(0, parseInt(e.target.value, 10) || 0))}
+                    className="w-full text-xl font-black text-ink px-4 py-3 rounded-2xl border-2 border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B] pr-16"
+                  />
+                  <span className="absolute right-4 top-1/2 -translate-y-1/2 text-xs font-black text-gray-400">
+                    ETB
+                  </span>
+                </div>
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] text-gray-400 font-bold">Quick Presets:</span>
+                  {[20, 50, 100, walletBalance].filter(v => v > 0).map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      onClick={() => setWithdrawAmount(v)}
+                      className="px-2.5 py-1 rounded-lg bg-stone-100 hover:bg-stone-200 text-xs font-bold text-gray-700 transition-colors"
+                    >
+                      {v === walletBalance ? `All (${v} ETB)` : `${v} ETB`}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Recipient Account Number */}
+              <div>
+                <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1">
+                  {withdrawMethod === 'telebirr' ? 'Your Telebirr Phone Number' : 'Your CBE Bank Account Number'}
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={withdrawAccount}
+                  onChange={(e) => setWithdrawAccount(e.target.value)}
+                  placeholder={withdrawMethod === 'telebirr' ? 'e.g. 0911223344' : 'e.g. 1000123456789'}
+                  className="w-full text-sm font-mono font-bold text-ink px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                />
+              </div>
+
+              {/* Account Holder Name */}
+              <div>
+                <label className="block text-xs font-black text-gray-700 uppercase tracking-wider mb-1">
+                  Registered Account Holder Full Name
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={withdrawName}
+                  onChange={(e) => setWithdrawName(e.target.value)}
+                  placeholder="e.g. Abebe Kebede"
+                  className="w-full text-sm font-bold text-ink px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  Must match the name on your bank or Telebirr account for admin transfer verification.
+                </span>
+              </div>
+
+              <button
+                type="submit"
+                disabled={walletBalance < MIN_WITHDRAWAL_AMOUNT || withdrawAmount < MIN_WITHDRAWAL_AMOUNT || withdrawAmount > walletBalance}
+                className={cn(
+                  'w-full py-4 rounded-2xl font-black text-sm uppercase tracking-wider shadow-md transition-all flex items-center justify-center gap-2 cursor-pointer',
+                  walletBalance >= MIN_WITHDRAWAL_AMOUNT && withdrawAmount >= MIN_WITHDRAWAL_AMOUNT && withdrawAmount <= walletBalance
+                    ? 'bg-[#0B5D3B] hover:bg-emerald-800 text-white'
+                    : 'bg-gray-200 text-gray-400 cursor-not-allowed'
+                )}
+              >
+                <span>Submit Withdrawal Request ({withdrawAmount} ETB)</span>
+                <ArrowRight size={16} />
+              </button>
+            </form>
+
+            {/* Withdrawal History */}
+            <div className="pt-6 border-t border-stone-200 space-y-4">
+              <h3 className="font-black text-ink text-base">Your Withdrawal Requests & Transfer Receipts</h3>
+              {withdrawals.length === 0 ? (
+                <div className="p-8 text-center bg-stone-50 rounded-2xl border border-dashed border-stone-200 text-gray-400 text-xs">
+                  No withdrawal requests yet. When you request a payout, status and transfer screenshot proof will be displayed here.
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {withdrawals.map((w) => (
+                    <div
+                      key={w.id}
+                      className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
+                    >
+                      <div>
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="font-mono text-xs font-bold text-ink">{w.id}</span>
+                          <span
+                            className={cn(
+                              'px-2 py-0.5 rounded-full text-[10px] font-black uppercase',
+                              w.status === 'approved'
+                                ? 'bg-emerald-100 text-emerald-800'
+                                : w.status === 'rejected'
+                                ? 'bg-rose-100 text-rose-800'
+                                : 'bg-amber-100 text-amber-800'
+                            )}
+                          >
+                            {w.status === 'approved' ? 'Approved & Transferred' : w.status === 'rejected' ? 'Rejected & Refunded' : 'Pending Admin Transfer'}
+                          </span>
+                        </div>
+                        <div className="text-xs text-gray-600">
+                          {w.paymentMethod.toUpperCase()} ({w.accountNumber}) • {w.accountName}
+                        </div>
+                        {w.rejectionReason && (
+                          <p className="text-[11px] text-rose-700 font-semibold mt-1">
+                            Reason: {w.rejectionReason} (Amount refunded)
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-2">
+                        <span className="text-base font-black text-ink">{w.amount} ETB</span>
+                        {w.payoutScreenshot && (
+                          <button
+                            type="button"
+                            onClick={() => setZoomPayoutImage(w.payoutScreenshot || null)}
+                            className="px-3 py-1.5 rounded-xl bg-white border border-emerald-300 text-emerald-800 text-xs font-bold hover:bg-emerald-50 transition-colors flex items-center gap-1.5 shadow-xs cursor-pointer"
+                          >
+                            <Eye size={13} className="text-emerald-600" />
+                            <span>View Payout Screenshot</span>
+                          </button>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Payout Screenshot Zoom Modal */}
+        {zoomPayoutImage && (
+          <div
+            onClick={() => setZoomPayoutImage(null)}
+            className="fixed inset-0 bg-black/85 backdrop-blur-md z-50 flex items-center justify-center p-4 cursor-zoom-out animate-fadeIn"
+          >
+            <div className="relative max-w-2xl max-h-[90vh] bg-transparent">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={zoomPayoutImage}
+                alt="Payout Transfer Proof"
+                className="max-h-[85vh] w-auto mx-auto rounded-3xl shadow-2xl object-contain border border-white/20"
+              />
+              <button
+                type="button"
+                onClick={() => setZoomPayoutImage(null)}
+                className="absolute top-4 right-4 p-2 rounded-full bg-black/60 text-white hover:bg-black transition-all"
+              >
+                <X size={20} />
+              </button>
+            </div>
           </div>
         )}
 

@@ -5,9 +5,10 @@ import Link from 'next/link';
 import {
   HelpCircle, ChevronDown, ChevronUp, MessageCircle,
   Mail, Phone, ExternalLink, BookOpen, FileText,
-  CheckCircle, Clock, Shield, Zap
+  CheckCircle, Clock, Shield, Zap, Sparkles
 } from 'lucide-react';
 import AuthGuard from '@/components/ui/AuthGuard';
+import { useAuth } from '@/context/AuthContext';
 import toast from 'react-hot-toast';
 
 interface FAQ {
@@ -51,9 +52,21 @@ const FAQS: FAQ[] = [
 ];
 
 function HelpContent() {
+  const { user, walletBalance, payWithWallet } = useAuth();
   const [openFAQ, setOpenFAQ] = useState<number | null>(null);
 
   const toggle = (i: number) => setOpenFAQ(openFAQ === i ? null : i);
+
+  const handlePrioritySupport = () => {
+    if (walletBalance < 5) {
+      toast.error(`Priority Solution Support requires 5 ETB. Your balance is ${walletBalance} ETB. Please deposit 20 ETB.`);
+      return;
+    }
+    const success = payWithWallet(5, ['priority-support']);
+    if (success) {
+      toast.success('⚡ 5 ETB paid! 1-on-1 Priority Exam Solver connected! Master Admin notified.', { duration: 5000 });
+    }
+  };
 
   return (
     <div className="min-h-screen bg-slate-50 py-8 px-4">
@@ -121,6 +134,34 @@ function HelpContent() {
                 )}
               </div>
             ))}
+          </div>
+        </div>
+
+        {/* Priority 1-on-1 Solution Support Card (5 ETB) */}
+        <div className="p-6 rounded-3xl bg-gradient-to-br from-[#12202B] via-[#0B5D3B] to-[#12202B] text-white shadow-lg space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-2.5">
+              <div className="w-10 h-10 rounded-2xl bg-amber-400 text-[#12202B] font-black flex items-center justify-center shadow-md">
+                <Zap size={20} className="fill-[#12202B]" />
+              </div>
+              <div>
+                <div className="flex items-center gap-2">
+                  <h3 className="font-black text-base text-white">1-on-1 Priority Exam Solution Support</h3>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-400 text-[#12202B]">
+                    5 ETB
+                  </span>
+                </div>
+                <p className="text-xs text-emerald-200">Instant direct assistance on difficult university exam questions & proofs.</p>
+              </div>
+            </div>
+
+            <button
+              onClick={handlePrioritySupport}
+              className="px-5 py-2.5 rounded-xl bg-amber-400 hover:bg-amber-300 text-[#12202B] font-black text-xs transition-transform active:scale-95 shadow-md flex items-center gap-1.5 self-start sm:self-auto cursor-pointer"
+            >
+              <Sparkles size={14} />
+              <span>Unlock Priority Solver (5 ETB)</span>
+            </button>
           </div>
         </div>
 

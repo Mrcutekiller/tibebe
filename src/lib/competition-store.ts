@@ -2,6 +2,12 @@
 // Real-time Competition, Quiz Engine, Point System & Top 20 Leaderboard
 // Awards cash prizes every month: 1st Place (1,000 ETB), 2nd Place (600 ETB), 3rd Place (300 ETB)
 
+import { EXAMS } from './seed-data';
+import { addNotification } from './notification-store';
+
+export const COMPETITION_TEST_FEE = 5; // 5 ETB test entry fee
+export const SUPPORT_PRIORITY_FEE = 5; // 5 ETB priority tutor support fee
+
 export interface CourseQuizQuestion {
   id: string;
   question: string;
@@ -320,6 +326,27 @@ export function awardStudentPoints(
   try {
     localStorage.setItem(STUDENT_POINTS_STORAGE_KEY, JSON.stringify(next));
 
+    try {
+      const rankInfo = getLeaderboardData({ id: userId, name: userName });
+      if (rankInfo.userRank === 1) {
+        addNotification({
+          userId,
+          title: '🥇 You Took 1st Place!',
+          message: 'Congratulations! You are now #1 on the Monthly Leaderboard with ' + next + ' pts. Keep competing to win 1,000 ETB!',
+          type: 'leaderboard',
+          link: '/dashboard/competition',
+        });
+      } else if (rankInfo.userRank <= 3) {
+        addNotification({
+          userId,
+          title: '🏆 Podium Rank #' + rankInfo.userRank + '!',
+          message: 'You climbed to #' + rankInfo.userRank + ' on the Leaderboard (' + next + ' pts)! You qualify for cash rewards.',
+          type: 'leaderboard',
+          link: '/dashboard/competition',
+        });
+      }
+    } catch {}
+
     // Also update student point history transactions
     const history = JSON.parse(localStorage.getItem('tibeb_point_history') || '[]');
     history.unshift({
@@ -458,3 +485,72 @@ export function getLeaderboardData(currentStudent?: {
   };
 }
 
+// Generates personalized randomized tests for each student derived from tests they have purchased
+export function getStudentPersonalizedChallenges(userId?: string): CourseQuizChallenge[] {
+  const result: CourseQuizChallenge[] = [];
+
+  // 1. Check purchased/unlocked exams for this student
+  if (typeof window !== 'undefined') {
+    try {
+      const unlockedIds: string[] = JSON.parse(localStorage.getItem('tibeb_unlocked_items') || '[]');
+      const customExams: any[] = JSON.parse(localStorage.getItem('tibeb_custom_exams') || '[]');
+      const allExams = [...customExams, ...EXAMS];
+
+      const purchasedExams = allExams.filter(e => unlockedIds.includes(e.id) && e.questions && e.questions.length > 0);
+
+      purchasedExams.forEach((exam) => {
+        // Randomize questions for this student so each test is unique
+        const shuffledQuestions = [...exam.questions]
+          .sort(() => 0.5 - Math.random())
+          .slice(0, 5)
+          .map((q: any, idx: number) => ({
+            id: `purchased-${q.id || idx}-${Math.random().toString(36).substring(2, 6)}`,
+            question: q.question_text || q.text || 'Solve the following academic question:',
+            options: (q.options || [
+              { key: 'A', text: 'Option A' },
+              { key: 'B', text: 'Option B' },
+              { key: 'C', text: 'Option C' },
+              { key: 'D', text: 'Option D' },
+            ]).slice().sort(() => 0.5 - Math.random()),
+            correctOption: q.correct_option || q.correct || 'A',
+            explanation: q.explanation || 'Verified university proof & step-by-step solution.',
+            points: 20,
+          }));
+
+        if (shuffledQuestions.length > 0) {
+          result.push({
+            id: `challenge-${exam.id}-${Date.now().toString().slice(-4)}`,
+            courseCode: exam.code || 'COURSE',
+            courseTitle: `${exam.title} (Your Purchased Course Test)`,
+            university: exam.university || 'AAU',
+            department: exam.department || 'Enrolled Course',
+            difficulty: 'Medium',
+            timeSeconds: 180,
+            totalRewardPoints: shuffledQuestions.length * 20,
+            questions: shuffledQuestions,
+          });
+        }
+      });
+    } catch (e) {
+      console.error('Error generating personalized challenges:', e);
+    }
+  }
+
+  // 2. Also include and randomize questions from base course competition challenges
+  COURSE_COMPETITION_QUIZZES.forEach(baseQuiz => {
+    const randomizedQuestions = [...baseQuiz.questions]
+      .sort(() => 0.5 - Math.random())
+      .map(q => ({
+        ...q,
+        id: `${q.id}-${Math.random().toString(36).substring(2, 5)}`,
+        options: [...q.options].sort(() => 0.5 - Math.random())
+      }));
+
+    result.push({
+      ...baseQuiz,
+      questions: randomizedQuestions
+    });
+  });
+
+  return result;
+}
