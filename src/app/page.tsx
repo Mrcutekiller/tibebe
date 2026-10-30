@@ -1,4 +1,5 @@
 'use client';
+import { getLocalSettings } from '@/lib/settings-store';
 
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
@@ -17,6 +18,8 @@ import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 import { Badge, StarRating } from '@/components/ui/Badge';
 import { EXAMS, UNIVERSITIES, TELEGRAM_PREMIUM_PLANS } from '@/lib/seed-data';
+import InstallAppSection from '@/components/pwa/InstallAppSection';
+import CoreProductsAndPricing from '@/components/home/CoreProductsAndPricing';
 import { formatPrice } from '@/lib/utils';
 
 // Stagger animation presets
@@ -124,7 +127,7 @@ function HeroSection() {
           style={{ background: 'rgba(224,165,38,0.18)', border: '1px solid rgba(224,165,38,0.35)' }}
         >
           <span className="w-2 h-2 rounded-full bg-gold animate-pulse flex-shrink-0" />
-          <span className="font-bold text-gold">Ethiopia's #1 Platform for Exam Tests & Telegram Premium</span>
+          <span className="font-bold text-gold">Past Exam Tests & Telegram Premium</span>
         </motion.div>
 
         {/* Headline */}
@@ -208,7 +211,8 @@ function HeroSection() {
           </Button>
         </motion.div>
 
-        {/* Real Live Platform Metrics (No Demo • Real-Time Database) */}
+        {/* Real Live Platform Metrics (Only visible if >= 50 real students and >= 20 real exams) */}
+        {Number(liveStats.students) >= 50 && Number(liveStats.exams) >= 20 && (
         <motion.div
           variants={itemVariants}
           className="mt-12 sm:mt-16 w-full max-w-4xl mx-auto space-y-3"
@@ -252,18 +256,19 @@ function HeroSection() {
               </span>
             </div>
 
-            {/* Real Guaranteed Delivery */}
+            {/* Real Delivery Time */}
             <div className="p-3 sm:p-4 rounded-2xl bg-white/10 backdrop-blur-md border border-white/15 flex flex-col items-center text-center">
               <div className="flex items-center gap-1.5 text-gold mb-1">
                 <Zap size={16} className="fill-gold" />
                 <span className="text-xl sm:text-2xl font-black text-white">{liveStats.delivery}</span>
               </div>
               <span className="text-[10px] sm:text-[11px] font-bold text-emerald-100 uppercase tracking-wide">
-                Guaranteed Delivery Time
+                Usually within 30 minutes
               </span>
             </div>
           </div>
         </motion.div>
+        )}
       </motion.div>
 
       {/* Smooth bottom blend into cream section */}
@@ -651,6 +656,8 @@ function FeaturedExamSection() {
     }
   }, []);
 
+  if (featuredExams.length === 0) return null;
+
   return (
     <section className="section py-16 sm:py-24" style={{ background: 'var(--color-cream)' }}>
       <div className="container-tibeb px-4">
@@ -816,7 +823,7 @@ function AboutSection() {
             <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-[#0B5D3B] flex items-center justify-center font-black text-xl">
               🎓
             </div>
-            <h3 className="font-black text-base text-ink">10+ Years of Past Exams</h3>
+            <h3 className="font-black text-base text-ink">Past University Exams</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
               Curated midterm and final examinations from AAU, ASTU, Unity, Hawassa, and Jimma across Engineering, Computer Science, Medicine, and Business.
             </p>
@@ -826,9 +833,9 @@ function AboutSection() {
             <div className="w-12 h-12 rounded-2xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-xl">
               ✅
             </div>
-            <h3 className="font-black text-base text-ink">Certified Answer Keys</h3>
+            <h3 className="font-black text-base text-ink">Detailed Answer Keys</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Every single question includes a verified, step-by-step mathematical and conceptual explanation reviewed by university lecturers.
+              Every question includes step-by-step mathematical and conceptual explanations.
             </p>
           </div>
 
@@ -842,15 +849,27 @@ function AboutSection() {
             </p>
           </div>
 
-          <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
-            <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-black text-xl">
-              🏆
+          {getLocalSettings().competitions_enabled ? (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-black text-xl">
+                🏆
+              </div>
+              <h3 className="font-black text-base text-ink">Monthly Cash Prizes</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Compete on our live leaderboard by taking 3-minute course quizzes to win monthly prizes.
+              </p>
             </div>
-            <h3 className="font-black text-base text-ink">Monthly Cash Prizes</h3>
-            <p className="text-xs text-gray-500 leading-relaxed">
-              Compete on our live leaderboard by taking 3-minute course quizzes to win 1,000 ETB (1st), 600 ETB (2nd), and 300 ETB (3rd) every month.
-            </p>
-          </div>
+          ) : (
+            <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-black text-xl">
+                ⚡
+              </div>
+              <h3 className="font-black text-base text-ink">Instant Digital Delivery</h3>
+              <p className="text-xs text-gray-500 leading-relaxed">
+                Unlock past exams or activate Telegram Premium instantly. No waiting, transparent Ethiopian student support.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </section>
@@ -861,11 +880,12 @@ function AboutSection() {
 // WHY CHOOSE US SECTION (id="why-choose-us")
 // =====================================================
 function WhyChooseUsSection() {
+  const settings = getLocalSettings();
   const features = [
     {
       icon: FileText,
       title: 'Verified Exam Papers & Keys',
-      desc: 'Complete answer keys and step-by-step mathematical solutions certified for every question.',
+      desc: 'Complete answer keys and step-by-step mathematical solutions for questions.',
       emoji: '📄',
     },
     {
@@ -914,7 +934,7 @@ function WhyChooseUsSection() {
             Why Do You Choose Us?
           </span>
           <h2 className="text-3xl md:text-5xl font-black text-white mt-3 tracking-tight">
-            The #1 Academic Platform Built for Ethiopian Students
+            Academic Resources Built for Ethiopian Students
           </h2>
           <p className="text-sm text-gray-400 max-w-xl mx-auto">
             Everything you need to master your university semester exams, save study time, and win real cash rewards.
@@ -945,7 +965,7 @@ function WhyChooseUsSection() {
 
               <div className="mt-5 pt-3 border-t border-white/10 flex items-center gap-1.5 text-xs text-gold font-bold">
                 <CheckCircle2 size={13} className="text-gold" />
-                Guaranteed by Tibeb
+                Student-focused quality
               </div>
             </motion.div>
           ))}
@@ -956,139 +976,9 @@ function WhyChooseUsSection() {
 }
 
 // =====================================================
-// DOWNLOAD APP SECTION ON LANDING (id="download")
-// =====================================================
+// INSTALL APP SECTION ON LANDING (id="download")
 function DownloadAppSection() {
-  return (
-    <section id="download" className="py-20 sm:py-28 bg-[#FAF7F0] relative overflow-hidden border-t border-gray-200/80">
-      <div className="container-tibeb px-4 max-w-6xl mx-auto space-y-12">
-        
-        {/* Section Heading */}
-        <div className="text-center max-w-3xl mx-auto space-y-3">
-          <span className="inline-flex items-center gap-2 px-3.5 py-1 rounded-full bg-emerald-100 text-[#0B5D3B] text-xs font-black uppercase tracking-wider">
-            <Smartphone size={14} />
-            Official Mobile Releases
-          </span>
-          <h2 className="text-3xl sm:text-5xl font-black text-ink tracking-tight">
-            Download Tibeb for Android & iOS
-          </h2>
-          <p className="text-sm sm:text-base text-gray-600 leading-relaxed">
-            Install the official mobile app directly on your smartphone. Access your university library offline, practice questions on the go, and deposit via Telebirr or CBE in under 30 seconds.
-          </p>
-        </div>
-
-        {/* Side-by-Side App Download Cards */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-stretch">
-          
-          {/* ANDROID CARD */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-emerald-500/30 shadow-md flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center font-black">
-                    <Smartphone size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-lg text-ink">Android (.APK)</h3>
-                    <p className="text-xs text-emerald-700 font-bold">Official Direct Download • v1.2.0</p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-emerald-100 text-[#0B5D3B] text-[10px] font-black uppercase">
-                  8.4 MB
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Direct installation package. Works on all Android smartphones (Samsung, Xiaomi, Tecno, Infinix, Huawei) running Android 8.0 or newer.
-              </p>
-
-              <div className="p-3.5 rounded-2xl bg-gray-50 border border-gray-200/80 space-y-1 text-xs text-gray-600">
-                <p className="font-bold text-ink">How to install in 3 steps:</p>
-                <p className="text-[11px]">1. Tap <strong>Download APK</strong> below</p>
-                <p className="text-[11px]">2. Tap <strong>Allow from this source</strong> when prompted</p>
-                <p className="text-[11px]">3. Tap <strong>Install</strong> and start studying offline!</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <a
-                href="/api/download?type=apk"
-                download="tibeb.apk"
-                className="w-full py-4 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-black text-sm transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-center"
-              >
-                <Download size={17} />
-                Download Android APK (v1.2.0)
-              </a>
-              <div className="flex items-center justify-between text-[11px] text-gray-400 px-1">
-                <span>Instant Auto-Download</span>
-                <a href="/api/download?type=apk" download="tibeb-v1.2.0.apk" className="text-[#0B5D3B] font-bold hover:underline">
-                  Direct Mirror
-                </a>
-              </div>
-            </div>
-          </div>
-
-          {/* IOS CARD */}
-          <div className="bg-white rounded-3xl p-6 sm:p-8 border-2 border-slate-300 shadow-md flex flex-col justify-between space-y-6">
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl bg-slate-100 text-[#12202B] flex items-center justify-center font-black">
-                    <Apple size={24} />
-                  </div>
-                  <div>
-                    <h3 className="font-black text-lg text-ink">iOS (iPhone & iPad)</h3>
-                    <p className="text-xs text-gray-500 font-bold">via omarchy-apple-dev Pipeline</p>
-                  </div>
-                </div>
-                <span className="px-2.5 py-1 rounded-full bg-slate-100 text-slate-800 text-[10px] font-black uppercase">
-                  iOS 14.0+
-                </span>
-              </div>
-
-              <p className="text-xs text-gray-600 leading-relaxed">
-                Built with the open-source <a href="https://github.com/joshuaswarren/omarchy-apple-dev.git" target="_blank" rel="noreferrer" className="text-[#0B5D3B] font-bold underline">omarchy-apple-dev</a> toolchain. Install via native Apple configuration profile or sideload the .IPA.
-              </p>
-
-              <div className="p-3.5 rounded-2xl bg-slate-50 border border-slate-200/80 space-y-1 text-xs text-slate-700">
-                <p className="font-bold text-ink">Two easy installation options:</p>
-                <p className="text-[11px]">★ <strong>Option 1:</strong> 1-Tap iOS Profile (.mobileconfig) for instant home screen app</p>
-                <p className="text-[11px]">★ <strong>Option 2:</strong> Download .IPA for AltStore, Scarlet, or Sideloadly</p>
-              </div>
-            </div>
-
-            <div className="space-y-2 pt-2">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                <a
-                  href="/api/download?type=mobileconfig"
-                  download="tibeb.mobileconfig"
-                  className="py-4 px-3 rounded-2xl bg-[#12202B] hover:bg-slate-800 text-white font-black text-xs transition-all shadow-md flex items-center justify-center gap-2 cursor-pointer text-center"
-                >
-                  <Apple size={15} />
-                  1-Tap iOS Profile
-                </a>
-                <a
-                  href="/api/download?type=ipa"
-                  download="tibeb.ipa"
-                  className="py-4 px-3 rounded-2xl bg-gray-100 hover:bg-gray-200 text-ink font-bold text-xs transition-all flex items-center justify-center gap-1.5 cursor-pointer text-center"
-                >
-                  <Download size={14} />
-                  Download .IPA
-                </a>
-              </div>
-              <div className="text-center pt-1">
-                <Link href="/download" className="text-[11px] text-[#0B5D3B] font-bold hover:underline inline-flex items-center gap-1">
-                  View Full iOS & Android Download Guide <ArrowRight size={11} />
-                </Link>
-              </div>
-            </div>
-          </div>
-
-        </div>
-
-      </div>
-    </section>
-  );
+  return <InstallAppSection />;
 }
 
 // =====================================================
@@ -1166,7 +1056,7 @@ function UniversitiesSection() {
             href="/universities"
             className="text-sm font-bold text-green hover:underline inline-flex items-center gap-1.5"
           >
-            View all 18 universities <ArrowRight size={14} />
+            {`View all ${UNIVERSITIES.length} universities`} <ArrowRight size={14} />
           </Link>
         </div>
       </div>
@@ -1226,6 +1116,8 @@ function SocialProofSection() {
     setComment('');
   };
 
+  if (testimonials.length < 5) return null;
+
   return (
     <section className="section py-16 sm:py-24 bg-[#FAF6EC] relative overflow-hidden">
       <div className="container-tibeb px-4">
@@ -1241,7 +1133,7 @@ function SocialProofSection() {
           </div>
           <h2 className="section-title text-2xl sm:text-4xl text-ink">What Ethiopian Students Say</h2>
           <p className="section-subtitle max-w-xl mx-auto mt-2">
-            Loved by thousands of students across Addis Ababa University, ASTU, and top Ethiopian campuses.
+            Authentic reviews from Ethiopian university students.
           </p>
 
           <div className="mt-5">
@@ -1524,6 +1416,7 @@ export default function LandingPage() {
       />
 
       <HeroSection />
+      <CoreProductsAndPricing />
       <AboutSection />
       <WhyChooseUsSection />
       <DownloadAppSection />

@@ -1,36 +1,44 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Tibeb — Higher Education Platform (Ethiopia)
 
-## Getting Started
+Past exam tests for Ethiopian university students, and official Telegram Premium.
 
-First, run the development server:
+---
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+## 🌐 Custom Domain Setup Guide (Vercel)
+
+Follow these steps to connect your custom domain (e.g., `tibeb.et`, `tibebexams.com`):
+
+### 1. Add Domain in Vercel
+1. Go to your **[Vercel Dashboard](https://vercel.com/dashboard)**.
+2. Select your `tibeb` project.
+3. Navigate to **Settings** > **Domains**.
+4. Enter your custom domain (e.g. `tibebexams.com` or `app.tibeb.et`) and click **Add**.
+5. Choose whether to redirect `www.tibebexams.com` to `tibebexams.com` (recommended).
+
+### 2. Configure DNS Records with Your Domain Registrar
+Add the DNS records displayed in Vercel:
+
+| Type | Name / Host | Value / Target | TTL |
+|------|-------------|----------------|-----|
+| **A** | `@` (root) | `76.76.21.21` | Automatic / 3600 |
+| **CNAME** | `www` | `cname.vercel-dns.com` | Automatic / 3600 |
+
+*For subdomains (e.g. `app.tibeb.et`):*
+| Type | Name / Host | Value / Target | TTL |
+|------|-------------|----------------|-----|
+| **CNAME** | `app` | `cname.vercel-dns.com` | Automatic / 3600 |
+
+### 3. Set Canonical App URL in Vercel Environment Variables
+In **Project Settings** > **Environment Variables**, set:
+```env
+NEXT_PUBLIC_APP_URL=https://yourdomain.com
 ```
+This automatically configures canonical SEO URLs, Open Graph link previews, and sitemaps.
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+---
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
-
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
-
-## Learn More
-
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+## 🛠️ Tech Stack & Security
+- **Framework**: Next.js 16 (App Router, Turbopack, Standalone SSR/PWA)
+- **Database & Auth**: Supabase PostgreSQL with strict Row Level Security (RLS)
+- **Payments**: Telebirr & Chapa with server-side webhook signature verification
+- **Offline Mode**: Service Worker with dorm caching and `/offline.html` fallback

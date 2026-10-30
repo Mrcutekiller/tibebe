@@ -50,8 +50,10 @@ import {
 import { supabase } from '@/lib/supabase';
 import { addNotification } from '@/lib/notification-store';
 import { getReferralsList, getStudentReferralCode, type ReferralRecord } from '@/lib/referral-store';
+import { getLocalSettings, updateRemoteSettings, type TibebSettings } from '@/lib/settings-store';
+import { getStoredTelegramOrders, updateTelegramOrderStatus, type TelegramOrder } from '@/lib/telegram-orders-store';
 
-type AdminTab = 'overview' | 'verifications' | 'withdrawals' | 'referrals' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
+type AdminTab = 'overview' | 'orders' | 'verifications' | 'withdrawals' | 'referrals' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
 
 interface SupportTicket {
   id: string;
@@ -182,6 +184,23 @@ export default function AdminPortalPage() {
   const [allReferrals, setAllReferrals] = useState<ReferralRecord[]>([]);
   const [expandedPromoterId, setExpandedPromoterId] = useState<string | null>(null);
   const [referralSearchQuery, setReferralSearchQuery] = useState('');
+
+  // System Settings State
+  const [sysSettings, setSysSettings] = useState<TibebSettings>(getLocalSettings());
+  const [orderSubTab, setOrderSubTab] = useState<'exams' | 'telegram'>('telegram');
+  const [orderSearchQuery, setOrderSearchQuery] = useState('');
+  const [adminTgOrders, setAdminTgOrders] = useState<TelegramOrder[]>([]);
+
+  useEffect(() => {
+    setAdminTgOrders(getStoredTelegramOrders());
+    const handleTgUpdate = () => setAdminTgOrders(getStoredTelegramOrders());
+    window.addEventListener('tibeb_telegram_orders_updated', handleTgUpdate);
+    window.addEventListener('storage', handleTgUpdate);
+    return () => {
+      window.removeEventListener('tibeb_telegram_orders_updated', handleTgUpdate);
+      window.removeEventListener('storage', handleTgUpdate);
+    };
+  }, []);
 
   // Coupons State
   const [coupons, setCoupons] = useState<Coupon[]>([]);
@@ -1237,6 +1256,7 @@ export default function AdminPortalPage() {
           <nav className="flex md:flex-col items-center gap-2">
             {[
               { id: 'overview' as AdminTab, icon: TrendingUp, label: 'Overview' },
+              { id: 'orders' as AdminTab, icon: ShoppingBag, label: 'Orders & Purchases' },
               {
                 id: 'verifications' as AdminTab,
                 icon: QrCode,
@@ -1628,6 +1648,184 @@ export default function AdminPortalPage() {
         {/* ========================================================================= */}
         {/* TAB 2: PAYMENT VERIFICATIONS & APPROVALS (Core Feature Requested)         */}
         {/* ========================================================================= */}
+                {/* ========================================================================= */}
+        {/* ORDERS & PURCHASES TAB (Section 8: Exam Purchases & Telegram Orders)     */}
+        {/* ========================================================================= */}
+        {activeTab === 'orders' && (
+          <div className="space-y-6">
+            {/* Header */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+              <div>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-black text-ink">Orders & Purchases Hub</h2>
+                  <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                    Live Server Data
+                  </span>
+                </div>
+                <p className="text-xs text-gray-500 mt-0.5">
+                  Track student past exam purchases and Telegram Premium gift order deliveries.
+                </p>
+              </div>
+
+              {/* Sub-tab pills */}
+              <div className="flex items-center gap-2 bg-slate-100 p-1.5 rounded-2xl border border-gray-200">
+                <button
+                  type="button"
+                  onClick={() => setOrderSubTab('telegram')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    orderSubTab === 'telegram' ? 'bg-[#0B5D3B] text-white shadow-sm' : 'text-gray-600 hover:text-ink'
+                  }`}
+                >
+                  ⚡ Telegram Premium Orders ({adminTgOrders.length})
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setOrderSubTab('exams')}
+                  className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                    orderSubTab === 'exams' ? 'bg-[#0B5D3B] text-white shadow-sm' : 'text-gray-600 hover:text-ink'
+                  }`}
+                >
+                  📚 Exam Purchases ({verifications.length})
+                </button>
+              </div>
+            </div>
+
+            {/* Search */}
+            <div className="relative max-w-md">
+              <Search size={16} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
+              <input
+                type="text"
+                placeholder="Search by student name, phone, or Telegram @username..."
+                value={orderSearchQuery}
+                onChange={(e) => setOrderSearchQuery(e.target.value)}
+                className="w-full pl-11 pr-4 py-3 bg-white border border-gray-200 rounded-2xl text-xs font-medium focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+              />
+            </div>
+
+            {/* Telegram Orders View */}
+            {orderSubTab === 'telegram' && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <h3 className="font-black text-ink text-sm">Telegram Premium Orders</h3>
+                  <span className="text-xs text-gray-400">Total: {adminTgOrders.length}</span>
+                </div>
+
+                {adminTgOrders.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 text-xs">
+                    <p className="font-bold text-sm text-gray-500 mb-1">No Telegram Premium orders yet</p>
+                    <p>When students order Telegram Premium via Telebirr or Chapa, orders will appear here live.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase text-[10px]">
+                          <th className="pb-3">Order ID</th>
+                          <th className="pb-3">Telegram Username</th>
+                          <th className="pb-3">Plan</th>
+                          <th className="pb-3">Price</th>
+                          <th className="pb-3">Payment</th>
+                          <th className="pb-3">Delivery Status</th>
+                          <th className="pb-3 text-right">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {adminTgOrders
+                          .filter(o => !orderSearchQuery || o.telegramUsername.toLowerCase().includes(orderSearchQuery.toLowerCase()) || o.userName?.toLowerCase().includes(orderSearchQuery.toLowerCase()))
+                          .map((order) => (
+                            <tr key={order.id} className="hover:bg-slate-50">
+                              <td className="py-3 font-mono font-bold text-gray-500">{order.id}</td>
+                              <td className="py-3 font-bold text-[#0B5D3B]">{order.telegramUsername}</td>
+                              <td className="py-3 font-semibold text-ink">{order.planLabel}</td>
+                              <td className="py-3 font-black text-ink">{order.price} ETB</td>
+                              <td className="py-3">
+                                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                                  {order.paymentStatus}
+                                </span>
+                              </td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  order.deliveryStatus === 'Delivered' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-900'
+                                }`}>
+                                  {order.deliveryStatus}
+                                </span>
+                              </td>
+                              <td className="py-3 text-right">
+                                {order.deliveryStatus !== 'Delivered' ? (
+                                  <button
+                                    onClick={() => {
+                                      updateTelegramOrderStatus(order.id, { deliveryStatus: 'Delivered', paymentStatus: 'Paid' });
+                                      toast.success(`Marked order ${order.id} as Delivered to ${order.telegramUsername}! 🎉`);
+                                    }}
+                                    className="px-3 py-1.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-bold text-[11px] shadow-xs cursor-pointer"
+                                  >
+                                    Mark Delivered
+                                  </button>
+                                ) : (
+                                  <span className="text-emerald-700 font-bold text-[11px]">✓ Delivered</span>
+                                )}
+                              </td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+
+            {/* Exam Purchases View */}
+            {orderSubTab === 'exams' && (
+              <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
+                <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+                  <h3 className="font-black text-ink text-sm">Exam Test Purchases & Verifications</h3>
+                  <span className="text-xs text-gray-400">Total: {verifications.length}</span>
+                </div>
+
+                {verifications.length === 0 ? (
+                  <div className="text-center py-12 text-gray-400 text-xs">
+                    <p className="font-bold text-sm text-gray-500 mb-1">No exam purchases yet</p>
+                    <p>When students unlock 20 ETB past exams, verified purchases will show here.</p>
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-left text-xs">
+                      <thead>
+                        <tr className="border-b border-gray-100 text-gray-400 font-bold uppercase text-[10px]">
+                          <th className="pb-3">Student</th>
+                          <th className="pb-3">Method</th>
+                          <th className="pb-3">Amount</th>
+                          <th className="pb-3">Status</th>
+                          <th className="pb-3">Date</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-gray-100">
+                        {verifications
+                          .filter(v => !orderSearchQuery || v.userName.toLowerCase().includes(orderSearchQuery.toLowerCase()) || v.userPhone.includes(orderSearchQuery))
+                          .map((v) => (
+                            <tr key={v.id} className="hover:bg-slate-50">
+                              <td className="py-3 font-bold text-ink">{v.userName} ({v.userPhone})</td>
+                              <td className="py-3 uppercase text-gray-500 font-bold">{v.paymentMethod}</td>
+                              <td className="py-3 font-black text-ink">{v.amount} ETB</td>
+                              <td className="py-3">
+                                <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                                  v.status === 'approved' ? 'bg-emerald-100 text-emerald-800' : v.status === 'pending' ? 'bg-amber-100 text-amber-900' : 'bg-rose-100 text-rose-800'
+                                }`}>
+                                  {v.status}
+                                </span>
+                              </td>
+                              <td className="py-3 text-gray-400">{new Date(v.createdAt).toLocaleDateString()}</td>
+                            </tr>
+                          ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        )}
+
         {activeTab === 'verifications' && (
           <div className="space-y-6">
 
@@ -3749,57 +3947,142 @@ export default function AdminPortalPage() {
                 </button>
               </div>
 
-              {/* Right Settings Form Column */}
+              {/* Right Settings Form Column: System Settings (Section 8) */}
               <div className="lg:col-span-7 bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
-                <h3 className="font-black text-ink text-base">Admin Credentials & Preferences</h3>
+                <div className="flex items-center justify-between pb-4 border-b border-gray-100">
+                  <div>
+                    <h3 className="font-black text-ink text-base">System Settings & Platform Controls</h3>
+                    <p className="text-xs text-gray-500">Configure public business contacts, payment gateways, prices, and features.</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await updateRemoteSettings(sysSettings);
+                      toast.success('System settings saved and synced with Supabase! ✅', { icon: '⚙️' });
+                    }}
+                    className="px-5 py-2.5 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center gap-2"
+                  >
+                    <Save size={14} /> Save All Settings
+                  </button>
+                </div>
                 
-                <div className="space-y-4">
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Admin Display Name</label>
-                    <input
-                      type="text"
-                      defaultValue="Tibeb Master Admin"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-ink bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Registered Admin Email</label>
-                    <input
-                      type="email"
-                      defaultValue="tibebexams@gmail.com"
-                      readOnly
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-500 bg-gray-100 cursor-not-allowed"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-xs font-bold text-gray-700 mb-1.5">Admin Password</label>
-                    <input
-                      type="password"
-                      defaultValue="Te26sc26$"
-                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-ink bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
-                    />
-                  </div>
-
-                  <div className="p-4 rounded-2xl bg-emerald-50/60 border border-emerald-200 text-xs text-emerald-900 space-y-1">
-                    <div className="flex items-center gap-1.5 font-bold">
-                      <CheckCircle2 size={15} className="text-[#0B5D3B]" />
-                      Two-Factor Authentication (2FA) Active
+                <div className="space-y-5">
+                  {/* Master Competitions Switch */}
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-black text-ink block">🏆 Student Competitions & Cash Prizes</span>
+                      <p className="text-[11px] text-gray-500">When OFF (default), all 1,000 ETB leaderboard promotions are hidden from public pages.</p>
                     </div>
-                    <p className="text-[11px] text-emerald-800">
-                      Administrative commands and wallet overrides are protected with session cryptographic signatures.
-                    </p>
-                  </div>
-
-                  <div className="pt-2">
                     <button
                       type="button"
-                      onClick={() => toast.success('Admin profile preferences updated successfully! ✅', { icon: '🛡️' })}
-                      className="px-6 py-3 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider shadow-md transition-all cursor-pointer flex items-center gap-2"
+                      onClick={() => setSysSettings(prev => ({ ...prev, competitions_enabled: !prev.competitions_enabled }))}
+                      className={`px-4 py-2 rounded-xl text-xs font-black transition-all cursor-pointer ${
+                        sysSettings.competitions_enabled ? 'bg-amber-500 text-white' : 'bg-gray-200 text-gray-700'
+                      }`}
                     >
-                      <Save size={15} /> Save Admin Settings
+                      {sysSettings.competitions_enabled ? 'ENABLED' : 'DISABLED (Default)'}
                     </button>
+                  </div>
+
+                  {/* Payment Gateways ON/OFF */}
+                  <div className="p-4 rounded-2xl bg-stone-50 border border-stone-200 space-y-3">
+                    <span className="text-xs font-black text-ink block">Active Payment Methods</span>
+                    <div className="grid grid-cols-3 gap-2">
+                      <button
+                        type="button"
+                        onClick={() => setSysSettings(prev => ({ ...prev, payment_methods: { ...prev.payment_methods, telebirr: !prev.payment_methods.telebirr } }))}
+                        className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                          sysSettings.payment_methods?.telebirr ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-white text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        Telebirr: {sysSettings.payment_methods?.telebirr ? 'ON' : 'OFF'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSysSettings(prev => ({ ...prev, payment_methods: { ...prev.payment_methods, chapa: !prev.payment_methods.chapa } }))}
+                        className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                          sysSettings.payment_methods?.chapa ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-white text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        Chapa: {sysSettings.payment_methods?.chapa ? 'ON' : 'OFF'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setSysSettings(prev => ({ ...prev, payment_methods: { ...prev.payment_methods, cbe: !prev.payment_methods.cbe } }))}
+                        className={`p-2.5 rounded-xl text-xs font-bold border transition-all text-center cursor-pointer ${
+                          sysSettings.payment_methods?.cbe ? 'bg-emerald-100 text-emerald-900 border-emerald-300' : 'bg-white text-gray-400 border-gray-200'
+                        }`}
+                      >
+                        CBE Birr: {sysSettings.payment_methods?.cbe ? 'ON' : 'OFF'}
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Pricing Inputs */}
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Standard Exam Price (ETB)</label>
+                      <input
+                        type="number"
+                        value={sysSettings.exam_price_etb}
+                        onChange={(e) => setSysSettings(prev => ({ ...prev, exam_price_etb: Number(e.target.value) || 20 }))}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-ink bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-bold text-gray-700 mb-1">Semester Pack Discount (%)</label>
+                      <input
+                        type="number"
+                        value={sysSettings.bundle_discount_percent}
+                        onChange={(e) => setSysSettings(prev => ({ ...prev, bundle_discount_percent: Number(e.target.value) || 20 }))}
+                        className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-ink bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                      />
+                    </div>
+                  </div>
+
+                  {/* Business Contacts */}
+                  <div className="space-y-3 pt-2 border-t border-gray-100">
+                    <span className="text-xs font-black text-ink block">Public Business Contacts</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Telegram Support</label>
+                        <input
+                          type="text"
+                          value={sysSettings.business_telegram}
+                          onChange={(e) => setSysSettings(prev => ({ ...prev, business_telegram: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">WhatsApp Number</label>
+                        <input
+                          type="text"
+                          value={sysSettings.business_whatsapp}
+                          onChange={(e) => setSysSettings(prev => ({ ...prev, business_whatsapp: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium bg-slate-50"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-[11px] font-bold text-gray-600 mb-1">Business Email</label>
+                        <input
+                          type="text"
+                          value={sysSettings.business_email}
+                          onChange={(e) => setSysSettings(prev => ({ ...prev, business_email: e.target.value }))}
+                          className="w-full px-3 py-2 rounded-xl border border-gray-200 text-xs font-medium bg-slate-50"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Refund Policy Summary Text */}
+                  <div>
+                    <label className="block text-xs font-bold text-gray-700 mb-1">Public Refund Policy Summary</label>
+                    <textarea
+                      rows={2}
+                      value={sysSettings.refund_policy_summary}
+                      onChange={(e) => setSysSettings(prev => ({ ...prev, refund_policy_summary: e.target.value }))}
+                      className="w-full px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-medium text-ink bg-slate-50 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                    />
                   </div>
                 </div>
               </div>

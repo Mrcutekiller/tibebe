@@ -1,10 +1,13 @@
 // Tibeb High-Speed Offline & 3G Service Worker
-const CACHE_NAME = 'tibeb-cache-v2';
+const CACHE_NAME = 'tibeb-cache-v3';
 const STATIC_ASSETS = [
   '/',
   '/manifest.json',
   '/icon-192.png',
+  '/icon-512.png',
+  '/icon-maskable.png',
   '/apple-touch-icon.png',
+  '/offline.html',
 ];
 
 self.addEventListener('install', (event) => {
@@ -34,7 +37,27 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
-  // Stale-While-Revalidate caching for HTML, CSS, JS, and images
+  // Handle navigation requests (HTML pages)
+  if (event.request.mode === 'navigate') {
+    event.respondWith(
+      fetch(event.request)
+        .then((networkResponse) => {
+          if (networkResponse && networkResponse.status === 200) {
+            const clone = networkResponse.clone();
+            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+          }
+          return networkResponse;
+        })
+        .catch(() => {
+          return caches.match(event.request).then((cached) => {
+            return cached || caches.match('/offline.html');
+          });
+        })
+    );
+    return;
+  }
+
+  // Stale-While-Revalidate caching for static assets
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const fetchPromise = fetch(event.request)
@@ -53,4 +76,3 @@ self.addEventListener('fetch', (event) => {
     })
   );
 });
-

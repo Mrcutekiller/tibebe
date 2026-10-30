@@ -505,16 +505,6 @@ export default function ExamDetailPage() {
                 </div>
                 <div className="flex items-center gap-2 flex-wrap">
                   <button
-                    onClick={() => {
-                      generateWatermarkedExamPDF({ exam, student: user });
-                      toast.success('Generated official watermarked exam PDF! 📄');
-                    }}
-                    className="px-4 py-2.5 rounded-xl bg-ink hover:bg-slate-800 text-white font-bold text-xs flex items-center gap-2 shadow-sm transition-all active:scale-95 whitespace-nowrap cursor-pointer"
-                  >
-                    <Download size={14} className="text-gold" />
-                    Watermarked PDF
-                  </button>
-                  <button
                     onClick={() => startQuiz(false)}
                     className="px-5 py-2.5 rounded-xl bg-green hover:bg-emerald-700 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all active:scale-95 whitespace-nowrap cursor-pointer"
                   >
@@ -579,13 +569,19 @@ export default function ExamDetailPage() {
                 </div>
               </div>
 
-              {/* Main Photo Display */}
-              <div className="relative rounded-2xl overflow-hidden bg-slate-900 border border-gray-200 flex items-center justify-center min-h-[440px] max-h-[620px] group shadow-inner">
+              {/* Main Photo Display (Anti-piracy protected: no right-click, no drag, no text select) */}
+              <div
+                onContextMenu={(e) => e.preventDefault()}
+                onDragStart={(e) => e.preventDefault()}
+                className="relative rounded-2xl overflow-hidden bg-slate-900 border border-gray-200 flex items-center justify-center min-h-[440px] max-h-[620px] group shadow-inner select-none"
+              >
                 {/* Image (Blurred if !isUnlocked) */}
                 <img
                   src={examImages[currentImageIndex]}
                   alt={`${exam.title} - Page ${currentPageNumber}`}
-                  className={`w-full h-auto max-h-[620px] object-contain transition-all duration-300 ${
+                  draggable={false}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className={`w-full h-auto max-h-[620px] object-contain transition-all duration-300 select-none ${
                     isUnlocked
                       ? 'cursor-zoom-in hover:scale-[1.01]'
                       : 'filter blur-2xl select-none pointer-events-none opacity-40 scale-105'

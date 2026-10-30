@@ -522,7 +522,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await supabase.auth.signOut();
     } catch {}
-    localStorage.removeItem('tibeb_user');
+    try {
+      localStorage.removeItem('tibeb_user');
+      localStorage.removeItem('tibeb_unlocked_items');
+      // Purge all offline exam caches on logout
+      const keysToRemove: string[] = [];
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key && key.startsWith('tibeb_offline_exam_')) {
+          keysToRemove.push(key);
+        }
+      }
+      keysToRemove.forEach(k => localStorage.removeItem(k));
+    } catch {}
     setUser(null);
     window.location.href = '/';
   };

@@ -20,7 +20,7 @@ export default function AboutPage() {
             Our Mission & Story
           </div>
           <h1 className="text-3xl md:text-5xl font-black mb-6 tracking-tight leading-tight">
-            Democratizing Higher Education <br />
+            Empowering Higher Education <br />
             <span className="text-gold">Across Ethiopia</span>
           </h1>
           <p className="text-white/70 max-w-2xl mx-auto text-sm md:text-base leading-relaxed">
@@ -63,8 +63,8 @@ export default function AboutPage() {
                   <CheckCircle2 size={16} />
                 </div>
                 <div>
-                  <h4 className="font-bold text-ink text-sm">100% Verified Answers</h4>
-                  <p className="mt-0.5">Every question is solved by university instructors with step-by-step mathematical proofs.</p>
+                  <h4 className="font-bold text-ink text-sm">Detailed Step-by-Step Solutions</h4>
+                  <p className="mt-0.5">Questions include clear answers and step-by-step explanations.</p>
                 </div>
               </div>
 
@@ -82,29 +82,7 @@ export default function AboutPage() {
         </div>
       </section>
 
-      {/* Metrics Banner */}
-      <section className="bg-ink text-white py-16 px-4">
-        <div className="container-tibeb max-w-5xl">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
-            <div>
-              <p className="text-3xl sm:text-4xl font-black text-gold">12,000+</p>
-              <p className="text-xs text-white/60 mt-1">Active Students</p>
-            </div>
-            <div>
-              <p className="text-3xl sm:text-4xl font-black text-white">2,400+</p>
-              <p className="text-xs text-white/60 mt-1">Past Exam Papers</p>
-            </div>
-            <div>
-              <p className="text-3xl sm:text-4xl font-black text-emerald-400">18</p>
-              <p className="text-xs text-white/60 mt-1">Universities Covered</p>
-            </div>
-            <div>
-              <p className="text-3xl sm:text-4xl font-black text-gold">20 ETB</p>
-              <p className="text-xs text-white/60 mt-1">Standard Test Price</p>
-            </div>
-          </div>
-        </div>
-      </section>
+      
 
       {/* Ethiopian Leadership / Campuses */}
       <section className="container-tibeb max-w-5xl px-4 py-20 text-center">
@@ -116,10 +94,10 @@ export default function AboutPage() {
 
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-left">
           {[
-            { city: 'Addis Ababa', campus: '4 Kilo & 6 Kilo', count: '1,200+ Exams' },
-            { city: 'Adama', campus: 'ASTU Main Campus', count: '450+ Exams' },
-            { city: 'Jimma', campus: 'Main & JIT Campus', count: '380+ Exams' },
-            { city: 'Bahir Dar', campus: 'Poly & Peda Campuses', count: '320+ Exams' },
+            { city: 'Addis Ababa', campus: '4 Kilo & 6 Kilo', count: 'Past Exam Bank' },
+            { city: 'Adama', campus: 'ASTU Main Campus', count: 'Past Exam Bank' },
+            { city: 'Jimma', campus: 'Main & JIT Campus', count: 'Past Exam Bank' },
+            { city: 'Bahir Dar', campus: 'Poly & Peda Campuses', count: 'Past Exam Bank' },
           ].map(hub => (
             <div key={hub.city} className="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm">
               <div className="flex items-center gap-1.5 text-xs text-green font-bold mb-1">

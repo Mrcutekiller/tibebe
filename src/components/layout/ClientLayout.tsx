@@ -6,6 +6,7 @@ import Navbar from './Navbar';
 import Footer from './Footer';
 import CartDrawer from '@/components/cart/CartDrawer';
 import MiniSupportChat from '@/components/support/MiniSupportChat';
+import FloatingSupportButton from '@/components/ui/FloatingSupportButton';
 import { Toaster } from 'react-hot-toast';
 
 export default function ClientLayout({ children }: { children: React.ReactNode }) {
@@ -32,6 +33,7 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
       {!hideFooter && <Footer />}
       <CartDrawer />
       <MiniSupportChat />
+      <FloatingSupportButton />
       <Toaster
         position="bottom-right"
         toastOptions={{

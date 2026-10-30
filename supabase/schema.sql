@@ -178,6 +178,24 @@ create table if not exists public.products (
     created_at timestamptz not null default now()
 );
 
+-- TELEGRAM ORDERS
+create table if not exists public.telegram_orders (
+    id text primary key default gen_random_uuid()::text,
+    user_id text not null references public.users(id) on delete cascade,
+    plan_id text not null,
+    plan_label text not null,
+    months integer not null,
+    price numeric not null,
+    telegram_username text not null,
+    payment_method text not null default 'telebirr',
+    payment_status text not null default 'Pending' check (payment_status in ('Pending', 'Paid', 'Failed', 'Refunded')),
+    delivery_status text not null default 'Pending' check (delivery_status in ('Pending', 'Processing', 'Delivered')),
+    is_test boolean not null default false,
+    delivered_at timestamptz,
+    created_at timestamptz not null default now(),
+    updated_at timestamptz not null default now()
+);
+
 -- ORDERS
 create table if not exists public.orders (
     id text primary key,
@@ -364,6 +382,13 @@ alter table public.notifications enable row level security;
 alter table public.devices enable row level security;
 alter table public.activity_log enable row level security;
 alter table public.withdrawals enable row level security;
+alter table public.telegram_orders enable row level security;
+create policy "Users read own telegram orders" on public.telegram_orders
+    for select using (auth.uid()::text = user_id or is_admin(auth.uid()));
+create policy "Users create own telegram orders" on public.telegram_orders
+    for insert with check (auth.uid()::text = user_id or is_admin(auth.uid()));
+create policy "Admins manage all telegram orders" on public.telegram_orders
+    for all using (is_admin(auth.uid()));
 
 -- Public read access to published catalog data
 create policy "Allow public read access to universities" on public.universities for select using (true);

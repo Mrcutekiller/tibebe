@@ -4,7 +4,8 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useLanguage } from '@/context/LanguageContext';
-import { Mail, Phone, Globe, Send, Share2 } from 'lucide-react';
+import { Mail, Phone, Globe, Send, Share2, MessageCircle } from 'lucide-react';
+import { getLocalSettings } from '@/lib/settings-store';
 
 interface FooterLink {
   href: string;
@@ -27,7 +28,7 @@ const footerLinks: {
     { href: '/how-it-works', labelKey: 'nav.howItWorks' },
     { href: '/contact', labelKey: 'nav.contact' },
     { href: '/faq', labelKey: 'footer.faq' },
-    { href: '/blog', label: 'Blog' },
+    { href: '/download', label: 'Install App' },
   ],
   legal: [
     { href: '/terms', labelKey: 'footer.terms' },
@@ -90,34 +91,62 @@ export default function Footer() {
             </p>
 
             {/* Contact */}
-            <div className="flex flex-col gap-2">
-              <a href="mailto:tibebexams@gmail.com" className="flex items-center gap-2 text-sm text-white/80 hover:text-gold transition-colors font-medium">
-                <Mail size={14} className="text-gold" />
-                tibebexams@gmail.com
-              </a>
-              <a href="tel:099721895" className="flex items-center gap-2 text-sm text-white/80 hover:text-gold transition-colors font-medium">
-                <Phone size={14} className="text-gold" />
-                +251 99 721 895 (Biruk)
-              </a>
-            </div>
+            {(() => {
+              const settings = getLocalSettings();
+              return (
+                <div className="flex flex-col gap-2">
+                  {settings.business_email && (
+                    <a href={`mailto:${settings.business_email}`} className="flex items-center gap-2 text-sm text-white/80 hover:text-gold transition-colors font-medium">
+                      <Mail size={14} className="text-gold" />
+                      {settings.business_email}
+                    </a>
+                  )}
+                  {settings.business_telegram && (
+                    <a href={settings.business_telegram} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-white/80 hover:text-gold transition-colors font-medium">
+                      <Send size={14} className="text-gold" />
+                      Telegram Support
+                    </a>
+                  )}
+                  {settings.business_whatsapp && (
+                    <a href={`https://wa.me/${settings.business_whatsapp.replace(/[^0-9]/g, '')}`} target="_blank" rel="noopener noreferrer" className="flex items-center gap-2 text-sm text-white/80 hover:text-gold transition-colors font-medium">
+                      <MessageCircle size={14} className="text-gold" />
+                      WhatsApp: {settings.business_whatsapp}
+                    </a>
+                  )}
+                </div>
+              );
+            })()}
 
             {/* Socials */}
-            <div className="flex items-center gap-3 mt-1">
-              {[
-                { icon: Send, href: '#', label: 'Telegram' },
-                { icon: Globe, href: '#', label: 'Portal' },
-                { icon: Share2, href: '#', label: 'Share' },
-              ].map(({ icon: Icon, href, label }) => (
-                <a
-                  key={label}
-                  href={href}
-                  aria-label={label}
-                  className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-gold hover:text-ink transition-all duration-200"
-                >
-                  <Icon size={15} />
-                </a>
-              ))}
-            </div>
+            {(() => {
+              const settings = getLocalSettings();
+              const links = [
+                settings.social_telegram ? { icon: Send, href: settings.social_telegram, label: 'Telegram' } : null,
+                settings.social_instagram ? { icon: Globe, href: settings.social_instagram, label: 'Instagram' } : null,
+                settings.social_tiktok ? { icon: Share2, href: settings.social_tiktok, label: 'TikTok' } : null,
+              ].filter(Boolean);
+
+              if (links.length === 0) return null;
+              return (
+                <div className="flex items-center gap-3 mt-1">
+                  {links.map((link: any) => {
+                    const Icon = link.icon;
+                    return (
+                      <a
+                        key={link.label}
+                        href={link.href}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        aria-label={link.label}
+                        className="w-8 h-8 rounded-lg bg-white/10 flex items-center justify-center hover:bg-gold hover:text-ink transition-all duration-200"
+                      >
+                        <Icon size={15} />
+                      </a>
+                    );
+                  })}
+                </div>
+              );
+            })()}
           </div>
 
           {/* Content links */}
@@ -175,12 +204,20 @@ export default function Footer() {
       <div className="border-t border-white/10">
         <div className="container-tibeb px-4 py-5 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="text-xs text-white/40">{t('footer.copyright')}</p>
-          <div className="flex items-center gap-4">
-            <span className="text-xs text-white/30">Payments secured by</span>
-            <span className="text-xs font-bold text-white/50">Chapa</span>
-            <span className="text-xs text-white/30">•</span>
-            <span className="text-xs font-bold text-white/50">Telebirr</span>
-          </div>
+          {(() => {
+            const settings = getLocalSettings();
+            const active = [];
+            if (settings.payment_methods?.telebirr) active.push('Telebirr');
+            if (settings.payment_methods?.chapa) active.push('Chapa');
+            if (settings.payment_methods?.cbe) active.push('CBE Birr');
+            if (active.length === 0) return null;
+            return (
+              <div className="flex items-center gap-2 text-xs">
+                <span className="text-white/30">Payment methods:</span>
+                <span className="font-bold text-white/60">{active.join(' • ')}</span>
+              </div>
+            );
+          })()}
         </div>
       </div>
     </footer>

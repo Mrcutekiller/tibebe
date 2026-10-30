@@ -1,7 +1,7 @@
 {
-  "name": "Tibeb — Higher Education Platform",
+  "name": "Tibeb",
   "short_name": "Tibeb",
-  "description": "Ethiopia's student platform for university exams, courses, and study materials.",
+  "description": "Past exam tests for Ethiopian university students, and Telegram Premium.",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -9,19 +9,22 @@
   "theme_color": "#0B5D3B",
   "icons": [
     {
-      "src": "/icon.png",
-      "sizes": "32x32",
-      "type": "image/png"
-    },
-    {
       "src": "/icon-192.png",
       "sizes": "192x192",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
     },
     {
-      "src": "/logo-transparent.png",
+      "src": "/icon-512.png",
       "sizes": "512x512",
-      "type": "image/png"
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
     }
   ]
 }

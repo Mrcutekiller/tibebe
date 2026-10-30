@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -10,6 +10,8 @@ import {
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { TELEGRAM_PREMIUM_PLANS } from '@/lib/seed-data';
+import { getLocalSettings } from '@/lib/settings-store';
+import { getStoredTelegramOrders, type TelegramOrder } from '@/lib/telegram-orders-store';
 import toast from 'react-hot-toast';
 
 export default function TelegramPremiumPage() {
@@ -20,20 +22,50 @@ export default function TelegramPremiumPage() {
   const [selectedPlanId, setSelectedPlanId] = useState<string>('tg-6m');
   const [telegramUsername, setTelegramUsername] = useState<string>('');
 
-  const selectedPlan = TELEGRAM_PREMIUM_PLANS.find(p => p.id === selectedPlanId) || TELEGRAM_PREMIUM_PLANS[2];
+  const settings = getLocalSettings();
+  const plans = (settings.telegram_premium_plans && settings.telegram_premium_plans.length > 0)
+    ? settings.telegram_premium_plans.map(p => ({
+        id: p.id,
+        duration: p.label,
+        months: p.months,
+        price: p.price,
+        original_price: Math.round(p.price * 1.25),
+        discount_percent: 20,
+        badge: p.popular ? 'Best Value' : undefined,
+        popular: p.popular,
+        description: `Official Telegram Premium for ${p.label}. Delivered directly to your @username.`,
+      }))
+    : TELEGRAM_PREMIUM_PLANS;
+
+  const selectedPlan = plans.find(p => p.id === selectedPlanId) || plans[0];
+  const [studentOrders, setStudentOrders] = useState<TelegramOrder[]>([]);
+
+  useEffect(() => {
+    if (user) {
+      const all = getStoredTelegramOrders();
+      setStudentOrders(all.filter(o => o.userId === user.id));
+    }
+  }, [user]);
 
   const handleProceedToPayment = () => {
-    let cleanHandle = telegramUsername.trim();
+    let cleanHandle = telegramUsername.trim().replace(/^@/, '');
     if (!cleanHandle) {
       toast.error('Please enter your Telegram @username for delivery!');
       return;
     }
-    if (!cleanHandle.startsWith('@')) {
-      cleanHandle = `@${cleanHandle}`;
+    if (!/^[a-zA-Z0-9_]{5,32}$/.test(cleanHandle)) {
+      toast.error('Invalid Telegram username. Must be 5-32 characters (letters, numbers, underscores).');
+      return;
+    }
+    const fullHandle = `@${cleanHandle}`;
+
+    if (!user) {
+      router.push(`/signup?redirect=${encodeURIComponent(`/checkout?item=${selectedPlan.id}&type=telegram&username=${fullHandle}`)}`);
+      return;
     }
 
     // Direct to checkout with plan and handle
-    router.push(`/checkout?item=${selectedPlan.id}&type=telegram&username=${encodeURIComponent(cleanHandle)}`);
+    router.push(`/checkout?item=${selectedPlan.id}&type=telegram&username=${encodeURIComponent(fullHandle)}`);
   };
 
   const perks = [
@@ -143,7 +175,7 @@ export default function TelegramPremiumPage() {
 
       {/* Main Order Form & Plan Selector OR Locked Gate */}
       <section className="container-tibeb max-w-5xl px-4 -mt-8 relative z-20 mb-20">
-        {!user && !authLoading ? (
+        {false ? (
           <div className="bg-white rounded-3xl p-8 sm:p-12 shadow-2xl border border-gray-100 text-center max-w-2xl mx-auto space-y-6">
             <div className="w-16 h-16 rounded-3xl bg-amber-50 text-gold mx-auto flex items-center justify-center border border-amber-200 shadow-sm">
               <Lock size={32} className="text-gold" />
@@ -189,7 +221,7 @@ export default function TelegramPremiumPage() {
 
             {/* Plan Cards Grid */}
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-5 mb-8">
-              {TELEGRAM_PREMIUM_PLANS.map((plan) => {
+              {plans.map((plan) => {
                 const isSelected = selectedPlanId === plan.id;
                 const monthlyRate = Math.round(plan.price / plan.months);
 

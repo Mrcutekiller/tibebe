@@ -4,11 +4,11 @@ import React, { useState } from 'react';
 import Link from 'next/link';
 import {
   HelpCircle, Search, ChevronDown, MessageSquare,
-  ShieldCheck, Smartphone, Award, BookOpen, Send
+  ShieldCheck, Smartphone, Award, BookOpen, Send, RotateCcw
 } from 'lucide-react';
 
 interface FaqItem {
-  category: 'payments' | 'exams' | 'courses' | 'general';
+  category: 'payments' | 'delivery' | 'offline' | 'refunds' | 'telegram';
   q: string;
   a: string;
 }
@@ -21,48 +21,38 @@ export default function FaqPage() {
   const faqs: FaqItem[] = [
     {
       category: 'payments',
-      q: 'How does the 20 ETB payment work with Telebirr?',
-      a: 'When you choose Telebirr at checkout, you will either be prompted with the Telebirr web pay QR or a fast USSD push notification directly to your phone. Enter your Telebirr PIN to confirm, and your exam paper unlocks instantly.'
+      q: 'How do I pay using Telebirr, Chapa, or CBE Birr?',
+      a: 'You can pay instantly via Telebirr or CBE Birr through our integrated Chapa payment gateway, or by sending a direct Telebirr/CBE transfer and uploading the confirmation receipt. Once confirmed on the server, your exam test unlocks immediately in your Library.'
+    },
+    {
+      category: 'delivery',
+      q: 'How fast is delivery for exam tests and Telegram Premium?',
+      a: 'Exam tests unlock immediately upon payment confirmation. Telegram Premium subscriptions are delivered as official gifts to your Telegram @username usually within 30 minutes (always under 2 hours).'
+    },
+    {
+      category: 'offline',
+      q: 'How does Dorm Offline Mode work without internet?',
+      a: 'Install Tibeb as a Progressive Web App (PWA) on your phone or laptop. Any exam test you unlock has a "Save for Offline Dorm Study" toggle. Once saved, all pages, solutions, and explanations remain fully readable even if your dormitory Wi-Fi goes down and you have zero mobile data.'
+    },
+    {
+      category: 'refunds',
+      q: 'What is your refund policy if something goes wrong?',
+      a: 'We offer a 100% money-back guarantee. If an unlocked past exam has missing questions, unreadable scans, or incorrect solutions, submit a report within 24 hours for a full refund. For Telegram Premium, if your gift is not delivered within 2 hours, we will immediately refund your payment back to your Telebirr or bank account.'
+    },
+    {
+      category: 'telegram',
+      q: 'Is Telegram Premium safe? Do I need to give my password?',
+      a: 'It is 100% safe. We NEVER ask for your password, phone number SMS code, or login credentials. We only need your public Telegram @username. The subscription is activated using Telegram\'s official in-app Gift feature.'
     },
     {
       category: 'payments',
-      q: 'Can I pay using CBE Birr or local Ethiopian bank accounts?',
-      a: 'Yes! Through our verified payment partner Chapa, we support CBE Birr, Awash Bank, Bank of Abyssinia, Dashen Bank, and all Ethiopian local debit cards.'
+      q: 'What is the price of an exam test?',
+      a: 'Standard past exam papers with full questions, answers, and explanations cost 20 ETB each. We also offer free sample tests so you can inspect question formatting before unlocking.'
     },
     {
-      category: 'payments',
-      q: 'Do I get a receipt for university reimbursement or proof of purchase?',
-      a: 'Yes. Upon completing payment, an official Tibeb Electronic Receipt with unique Order ID and payment timestamp is generated in your dashboard under Orders.'
-    },
-    {
-      category: 'exams',
-      q: 'Are the past exam questions and answers 100% verified?',
-      a: 'Yes. Every past paper is collected directly from departmental exam archives, and the answer keys are solved step-by-step by top university graduates and lecturers.'
-    },
-    {
-      category: 'exams',
-      q: 'What is included in the 20 ETB exam price?',
-      a: 'For 20 ETB, you get the complete original exam PDF, full verified answer keys, step-by-step mathematical working, and unlimited interactive practice test sessions with our countdown timer.'
-    },
-    {
-      category: 'exams',
-      q: 'My university or department is missing. How can I request it?',
-      a: 'You can submit an exam request on our Contact page or via Telegram @tibeb_support. Our campus network adds over 50 new past exams every week during midterm and final seasons.'
-    },
-    {
-      category: 'courses',
-      q: 'How do employers verify my Tibeb certificate?',
-      a: 'Every completed certificate features a secure cryptographic ID and QR code. Anyone (including employers and university admissions) can verify the certificate by visiting /verify/[id].'
-    },
-    {
-      category: 'courses',
-      q: 'Can I download videos and notes for offline studying?',
-      a: 'Yes. Since internet in university dormitories can be inconsistent, all notes, summary slides, and exam papers are cached offline in the Tibeb Progressive Web App.'
-    },
-    {
-      category: 'general',
-      q: 'How can I become a Tibeb campus contributor or ambassador?',
-      a: 'If you have access to verified past papers or excel at tutoring, join our contributor network. Contributors receive royalties for every student who unlocks their study materials.'
+      category: 'offline',
+      q: 'Can I use Tibeb on both my Android phone and laptop?',
+      a: 'Yes. Your Tibeb student account syncs across your devices. You can install the PWA on both your Android/iOS phone and your PC.'
     }
   ];
 
@@ -82,14 +72,14 @@ export default function FaqPage() {
           <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2 block">Help Center</span>
           <h1 className="text-3xl sm:text-5xl font-black mb-4">Frequently Asked Questions</h1>
           <p className="text-white/70 max-w-lg mx-auto text-sm sm:text-base leading-relaxed mb-8">
-            Clear answers on payments, past exam accuracy, interactive testing, and certificate verification.
+            Honest, transparent answers on payments, delivery speed, offline dorm study, and Telegram Premium safety.
           </p>
 
           <div className="relative max-w-md mx-auto">
             <Search size={18} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400" />
             <input
               type="text"
-              placeholder="Search answers (e.g. Telebirr, 20 ETB, answers)..."
+              placeholder="Search answers (Telebirr, delivery, refunds, offline)..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="w-full bg-white text-ink pl-12 pr-4 py-3 rounded-2xl text-xs sm:text-sm font-medium focus:outline-none focus:ring-2 focus:ring-gold shadow-lg"
@@ -104,17 +94,18 @@ export default function FaqPage() {
         <div className="flex flex-wrap items-center justify-center gap-2 mb-10">
           {[
             { id: 'all', label: 'All Questions' },
-            { id: 'payments', label: 'Telebirr & Payments' },
-            { id: 'exams', label: '20 ETB Exams & Solutions' },
-            { id: 'courses', label: 'Courses & Certificates' },
-            { id: 'general', label: 'General & Campus Network' },
+            { id: 'payments', label: 'Payments (Telebirr/CBE)' },
+            { id: 'delivery', label: 'Delivery Time' },
+            { id: 'offline', label: 'Offline Dorm Mode' },
+            { id: 'refunds', label: 'Refunds & Guarantees' },
+            { id: 'telegram', label: 'Telegram Premium Safety' },
           ].map(cat => (
             <button
               key={cat.id}
               onClick={() => setCategory(cat.id)}
-              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all ${
+              className={`px-4 py-2 rounded-2xl text-xs font-bold transition-all cursor-pointer ${
                 category === cat.id
-                  ? 'bg-green text-white shadow-sm'
+                  ? 'bg-[#0B5D3B] text-white shadow-sm'
                   : 'bg-white text-gray-600 hover:bg-gray-100 border border-gray-200'
               }`}
             >
@@ -123,27 +114,27 @@ export default function FaqPage() {
           ))}
         </div>
 
-        {/* FAQ Accordion List */}
-        <div className="space-y-3">
-          {filteredFaqs.map((faq, idx) => {
-            const isOpen = openIndex === idx;
+        {/* FAQ Accordion */}
+        <div className="space-y-4">
+          {filteredFaqs.map((faq, index) => {
+            const isOpen = openIndex === index;
             return (
               <div
-                key={faq.q}
-                className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm transition-all"
+                key={index}
+                className="bg-white rounded-3xl border border-gray-200 overflow-hidden transition-all shadow-xs"
               >
                 <button
-                  onClick={() => setOpenIndex(isOpen ? null : idx)}
-                  className="w-full flex items-center justify-between p-5 text-left font-bold text-ink text-sm sm:text-base hover:bg-gray-50 transition-colors"
+                  onClick={() => setOpenIndex(isOpen ? null : index)}
+                  className="w-full p-5 sm:p-6 text-left flex items-center justify-between gap-4 font-bold text-sm sm:text-base text-ink hover:text-[#0B5D3B] transition-colors cursor-pointer"
                 >
                   <span>{faq.q}</span>
                   <ChevronDown
                     size={18}
-                    className={`text-gray-400 flex-shrink-0 ml-4 transition-transform ${isOpen ? 'rotate-180 text-green' : ''}`}
+                    className={`text-gray-400 transition-transform duration-200 flex-shrink-0 ${isOpen ? 'rotate-180 text-[#0B5D3B]' : ''}`}
                   />
                 </button>
                 {isOpen && (
-                  <div className="p-5 pt-0 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-gray-50">
+                  <div className="px-5 sm:px-6 pb-6 text-xs sm:text-sm text-gray-600 leading-relaxed border-t border-gray-100 pt-3">
                     {faq.a}
                   </div>
                 )}
@@ -152,36 +143,28 @@ export default function FaqPage() {
           })}
         </div>
 
-        {filteredFaqs.length === 0 && (
-          <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
-            <HelpCircle size={40} className="text-gray-300 mx-auto mb-3" />
-            <h3 className="font-bold text-ink text-base mb-1">No matching question found</h3>
-            <p className="text-xs text-gray-400 max-w-sm mx-auto mb-4">
-              Didn't find what you were looking for? Reach out directly to our Ethiopian student support team.
+        {/* Support Help Banner */}
+        <div className="mt-14 bg-white rounded-3xl p-8 border border-gray-200 text-center space-y-4 shadow-sm">
+          <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center mx-auto font-black text-xl">
+            <MessageSquare size={22} />
+          </div>
+          <div>
+            <h3 className="font-bold text-ink text-base">Still Have Questions?</h3>
+            <p className="text-xs text-gray-500 mt-1 max-w-md mx-auto">
+              Our student support team is active on Telegram daily from 8:00 AM to 11:00 PM.
             </p>
-            <Link
-              href="/contact"
-              className="px-5 py-2.5 rounded-xl bg-green text-white text-xs font-bold inline-flex items-center gap-2"
+          </div>
+          <div>
+            <a
+              href="https://t.me/tibeb_support"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-bold text-xs uppercase tracking-wider inline-flex items-center gap-2 shadow-sm"
             >
-              <Send size={13} /> Ask on Telegram
-            </Link>
+              <Send size={14} />
+              <span>Chat with Support on Telegram</span>
+            </a>
           </div>
-        )}
-
-        {/* Telegram Direct Support Box */}
-        <div className="mt-16 bg-white rounded-3xl p-8 border border-gray-100 shadow-card flex flex-col sm:flex-row items-center justify-between gap-6">
-          <div className="space-y-1 text-center sm:text-left">
-            <h3 className="font-bold text-ink text-lg">Still have a question?</h3>
-            <p className="text-xs text-gray-500">Chat with a campus coordinator on Telegram right now.</p>
-          </div>
-          <a
-            href="https://t.me/tibeb_support"
-            target="_blank"
-            rel="noreferrer"
-            className="px-6 py-3 rounded-2xl bg-sky-500 hover:bg-sky-600 text-white font-bold text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all whitespace-nowrap"
-          >
-            <Send size={15} /> Open @tibeb_support
-          </a>
         </div>
       </section>
     </div>

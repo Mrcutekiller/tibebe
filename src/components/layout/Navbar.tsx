@@ -15,11 +15,18 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 
-const navLinks = [
+interface NavItem {
+  href: string;
+  label: string;
+  icon: any;
+  badge?: string;
+}
+
+const navLinks: NavItem[] = [
   { href: '#home', label: 'Home', icon: Home },
   { href: '#about', label: 'About Us', icon: Info },
   { href: '#why-choose-us', label: 'Why Choose Us', icon: CheckCircle2 },
-  { href: '#download', label: 'Download App', icon: Download, badge: 'APK / iOS' },
+  { href: '#download', label: 'Install App', icon: Download },
 ];
 
 export default function Navbar() {
@@ -121,9 +128,16 @@ export default function Navbar() {
               onClick={(e) => {
                 if (href.startsWith('#')) {
                   e.preventDefault();
+                  if (pathname !== '/') {
+                    window.location.href = `/${href}`;
+                    return;
+                  }
                   const target = document.querySelector(href);
                   if (target) {
-                    target.scrollIntoView({ behavior: 'smooth' });
+                    const topOffset = 70;
+                    const pos = target.getBoundingClientRect().top + window.pageYOffset - topOffset;
+                    window.scrollTo({ top: pos, behavior: 'smooth' });
+                    setMobileOpen(false);
                   }
                 }
               }}
@@ -141,6 +155,15 @@ export default function Navbar() {
 
         {/* Right Actions */}
         <div className="flex items-center gap-2">
+          {/* Browse Tests Nav Button */}
+          <Link
+            href="/catalog"
+            className="hidden sm:inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-xs font-bold bg-[#E0A526] hover:bg-amber-400 text-ink shadow-sm transition-all cursor-pointer"
+          >
+            <BookOpen size={13} />
+            <span>Browse Tests</span>
+          </Link>
+
           {/* Search */}
           <Link
             href="/catalog"
@@ -250,13 +273,12 @@ export default function Navbar() {
               >
                 {t('nav.login')}
               </Link>
-              <Button
-                variant="primary"
-                size="sm"
-                onClick={() => window.location.href = '/signup'}
+              <Link
+                href="/signup"
+                className="px-4 py-2 rounded-full bg-white text-[#0B5D3B] hover:bg-emerald-50 text-xs font-bold transition-all shadow-sm inline-flex items-center justify-center cursor-pointer"
               >
                 {t('nav.signup')}
-              </Button>
+              </Link>
             </div>
           )}
 
