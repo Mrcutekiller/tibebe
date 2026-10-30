@@ -62,9 +62,8 @@ function HeroSection() {
       try {
         const customExams = JSON.parse(localStorage.getItem('tibeb_custom_exams') || '[]');
         customExamsCount = customExams.length;
-        const registered = JSON.parse(localStorage.getItem('tibeb_all_registered_users') || '[]');
-        const board = JSON.parse(localStorage.getItem('tibeb_competition_leaderboard') || '[]');
-        registeredCount = Math.max(registered.length, board.length);
+        const registered = JSON.parse(localStorage.getItem('tibeb_registered_users') || '[]');
+        registeredCount = registered.length;
         const activeUser = localStorage.getItem('tibeb_user');
         if (activeUser && registeredCount === 0) registeredCount = 1;
       } catch {}

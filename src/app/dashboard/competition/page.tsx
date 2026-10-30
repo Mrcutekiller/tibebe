@@ -83,12 +83,18 @@ export default function CompetitionLeaderboardPage() {
   useEffect(() => {
     refreshLeaderboard();
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'tibeb_student_points' || e.key === 'tibeb_competition_leaderboard') {
+      if (e.key === 'tibeb_student_points' || e.key === 'tibeb_competition_leaderboard_v3' || e.key === 'tibeb_competition_leaderboard') {
         refreshLeaderboard();
       }
     };
     window.addEventListener('storage', handleStorage);
-    return () => window.removeEventListener('storage', handleStorage);
+    window.addEventListener('tibeb_student_points_updated', refreshLeaderboard);
+    window.addEventListener('tibeb_competition_leaderboard_updated', refreshLeaderboard);
+    return () => {
+      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('tibeb_student_points_updated', refreshLeaderboard);
+      window.removeEventListener('tibeb_competition_leaderboard_updated', refreshLeaderboard);
+    };
   }, [user]);
 
   // Quiz Player State
@@ -363,7 +369,50 @@ export default function CompetitionLeaderboardPage() {
       {/* =========================================================================
           STICKY / PROMINENT USER RANK INDICATOR (Requested: user > 20 show rank)
          ========================================================================= */}
-      {!isUserInTop20 ? (
+      {currentUserEntry.points === 0 ? (
+        <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border-2 border-emerald-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#0B5D3B] text-gold flex items-center justify-center font-black text-lg shadow-sm shrink-0">
+              0
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                <h3 className="text-sm font-black text-[#12202B]">
+                  Ready to Compete (0 Points)
+                </h3>
+                <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-[#0B5D3B] border border-emerald-300">
+                  New Competitor
+                </span>
+              </div>
+              <p className="text-xs text-gray-600 mt-0.5">
+                Take a 3-minute Course Quiz (+100 pts) or unlock exam tests (+50 pts) to claim your spot on the live Top 20 Leaderboard and win cash prizes!
+              </p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2 shrink-0">
+            <button
+              onClick={() => {
+                setActiveTab('quiz');
+                if (challenges.length > 0) {
+                  handleRequestStartQuiz(challenges[0]);
+                }
+              }}
+              className="px-4 py-2 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+            >
+              <Play size={13} />
+              Take Quiz (+100 pts)
+            </button>
+            <Link
+              href="/dashboard/telegram-premium"
+              className="px-4 py-2 rounded-xl bg-gold hover:bg-amber-400 text-[#12202B] text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+            >
+              <Zap size={13} />
+              5* Booster (+250)
+            </Link>
+          </div>
+        </div>
+      ) : !isUserInTop20 ? (
         <div className="p-5 rounded-3xl bg-gradient-to-r from-emerald-50 via-teal-50 to-amber-50 border-2 border-emerald-300 shadow-sm flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div className="flex items-center gap-3.5">
             <div className="w-12 h-12 rounded-2xl bg-[#0B5D3B] text-gold flex items-center justify-center font-black text-lg shadow-sm shrink-0">

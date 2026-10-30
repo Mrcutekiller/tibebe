@@ -294,7 +294,7 @@ export const COURSE_COMPETITION_QUIZZES: CourseQuizChallenge[] = [
 // Starts clean from 0 with real competitive student rankings
 const INITIAL_LEADERBOARD_ENTRIES: StudentLeaderboardEntry[] = [];
 
-const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_leaderboard';
+const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_leaderboard_v3';
 const STUDENT_POINTS_STORAGE_KEY = 'tibeb_student_points';
 
 // Retrieve student personal points
@@ -311,6 +311,19 @@ export function getStudentPoints(userId?: string): number {
 }
 
 // Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
+const ALL_MOCK_NAMES = [
+  'Natnael Girma', 'Blen Tesfaye', 'Kidus Yohannes', 'Selamawit Bekele',
+  'Yared Haile', 'Tsion Alemu', 'Mekdelawit Desta', 'Henok Melaku',
+  'Eden Berhanu', 'Eyob Kebede', 'Rahel Fekadu', 'Dawit Mengistu',
+  'Saron Worku', 'Kalkidan Bekele', 'Elias Tilahun', 'Marta Assefa',
+  'Abel Solomon', 'Bethelhem Negash', 'Surafel Wolde', 'Lidya Zewdu',
+  'Abebe Bikila', 'Selamawit D.', 'Dawit Haile', 'Hana T.', 'Yohannes K.',
+  'Bethelhem M.', 'Ephrem G.', 'Rahel B.', 'Natnael W.', 'Tsion A.',
+  'Kidus F.', 'Marta T.', 'Samuel D.', 'Hiwot Z.', 'Biniyam E.',
+  'Lydia G.', 'Surafel M.', 'Frehiwot N.', 'Robel S.', 'Senait K.'
+];
+
+// Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
 export function awardStudentPoints(
   userId: string,
   userName: string,
@@ -325,6 +338,49 @@ export function awardStudentPoints(
 
   try {
     localStorage.setItem(STUDENT_POINTS_STORAGE_KEY, JSON.stringify(next));
+
+    // Update or insert real competitor into active leaderboard
+    let board: StudentLeaderboardEntry[] = [];
+    try {
+      const raw = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+      if (raw) board = JSON.parse(raw);
+    } catch {}
+
+    // Filter out any mock entries
+    board = board.filter(e => !e.id.startsWith('lead-') && !ALL_MOCK_NAMES.includes(e.name));
+
+    const existingIdx = board.findIndex(e => e.id === userId || e.name === userName);
+    if (existingIdx >= 0) {
+      board[existingIdx].points = next;
+      board[existingIdx].quizzesCompleted = (board[existingIdx].quizzesCompleted || 0) + (reason === 'quiz' ? 1 : 0);
+      board[existingIdx].testsPurchased = (board[existingIdx].testsPurchased || 0) + (reason === 'test_purchase' ? 1 : 0);
+      if (reason === 'telegram_premium') board[existingIdx].hasTelegramPremium = true;
+      if (extraMeta?.university) board[existingIdx].university = extraMeta.university;
+      if (extraMeta?.department) board[existingIdx].department = extraMeta.department;
+    } else {
+      board.push({
+        id: userId,
+        name: userName,
+        university: extraMeta?.university || 'AAU',
+        department: extraMeta?.department || 'Enrolled Student',
+        points: next,
+        quizzesCompleted: reason === 'quiz' ? 1 : 0,
+        testsPurchased: reason === 'test_purchase' ? 1 : 0,
+        hasTelegramPremium: reason === 'telegram_premium',
+        lastActive: 'Just now',
+      });
+    }
+
+    // Sort strictly by points descending
+    board.sort((a, b) => b.points - a.points);
+    board.forEach((entry, idx) => {
+      entry.rank = idx + 1;
+    });
+
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(board));
+    window.dispatchEvent(new Event('tibeb_student_points_updated'));
+    window.dispatchEvent(new Event('tibeb_competition_leaderboard_updated'));
+    window.dispatchEvent(new Event('storage'));
 
     try {
       const rankInfo = getLeaderboardData({ id: userId, name: userName });
@@ -375,7 +431,7 @@ export function awardStudentPoints(
   return { newTotal: next, previousTotal: current };
 }
 
-// Retrieve real-time Leaderboard with exactly top 20 and active student ranking
+// Retrieve real-time Leaderboard with real active students who have joined and earned points
 export function getLeaderboardData(currentStudent?: {
   id: string;
   name: string;
@@ -390,6 +446,16 @@ export function getLeaderboardData(currentStudent?: {
   pointsToTop20: number;
   seasonMonth: string;
 } {
+  // Purge any old legacy mock leaderboard from localStorage
+  if (typeof window !== 'undefined') {
+    try {
+      const oldRaw = localStorage.getItem('tibeb_competition_leaderboard');
+      if (oldRaw && (oldRaw.includes('Natnael Girma') || oldRaw.includes('lead-1') || oldRaw.includes('1420'))) {
+        localStorage.removeItem('tibeb_competition_leaderboard');
+      }
+    } catch {}
+  }
+
   let storedBoard: StudentLeaderboardEntry[] = [];
   if (typeof window !== 'undefined') {
     try {
@@ -398,24 +464,22 @@ export function getLeaderboardData(currentStudent?: {
     } catch {}
   }
 
-  // Filter out any mock/fake demo accounts from earlier versions
-  const FAKE_DEMO_NAMES = [
-    'Abebe Bikila', 'Selamawit D.', 'Dawit Haile', 'Hana T.', 'Yohannes K.',
-    'Bethelhem M.', 'Ephrem G.', 'Rahel B.', 'Natnael W.', 'Tsion A.',
-    'Kidus F.', 'Marta T.', 'Samuel D.', 'Hiwot Z.', 'Biniyam E.',
-    'Lydia G.', 'Surafel M.', 'Frehiwot N.', 'Robel S.', 'Senait K.'
-  ];
-  storedBoard = storedBoard.filter(e => !FAKE_DEMO_NAMES.includes(e.name));
+  // Strictly filter out any mock/demo entries by ID or name
+  storedBoard = storedBoard.filter(
+    e => !e.id.startsWith('lead-') && !ALL_MOCK_NAMES.includes(e.name)
+  );
 
-  // 1. Ingest all real registered student accounts from localStorage ('tibeb_registered_users')
+  // Ingest all real registered accounts that have joined and have earned points
   if (typeof window !== 'undefined') {
     try {
       const rawUsers = localStorage.getItem('tibeb_registered_users');
       if (rawUsers) {
         const regList: any[] = JSON.parse(rawUsers);
         regList.forEach((u) => {
-          if (!u || !u.name) return;
+          if (!u || !u.name || ALL_MOCK_NAMES.includes(u.name)) return;
           const pts = getStudentPoints(u.id) || u.competition_points || 0;
+          if (pts <= 0) return; // Only rank users who have earned points
+
           const existingIdx = storedBoard.findIndex(
             (b) => b.id === u.id || b.name.toLowerCase() === u.name.toLowerCase()
           );
@@ -432,10 +496,10 @@ export function getLeaderboardData(currentStudent?: {
               department: u.department || 'Enrolled Student',
               points: pts,
               avatar: u.avatar_url,
-              quizzesCompleted: pts > 0 ? Math.floor(pts / 20) : 0,
+              quizzesCompleted: Math.floor(pts / 20),
               testsPurchased: 0,
               hasTelegramPremium: false,
-              lastActive: 'Active Student',
+              lastActive: 'Recently',
             });
           }
         });
@@ -443,12 +507,12 @@ export function getLeaderboardData(currentStudent?: {
     } catch {}
   }
 
-  // 2. Ingest active student
+  // Ingest active student if they have earned points
   const studentId = currentStudent?.id || 'current-student';
   const studentName = currentStudent?.name || 'You (Tibeb Student)';
   const userPoints = getStudentPoints(studentId);
 
-  if (currentStudent && currentStudent.name) {
+  if (currentStudent && currentStudent.name && userPoints > 0) {
     const existingIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
     if (existingIndex >= 0) {
       storedBoard[existingIndex].points = Math.max(storedBoard[existingIndex].points, userPoints);
@@ -464,13 +528,16 @@ export function getLeaderboardData(currentStudent?: {
         department: currentStudent.department || 'Enrolled Student',
         points: userPoints,
         avatar: currentStudent.avatar_url,
-        quizzesCompleted: userPoints > 0 ? Math.floor(userPoints / 20) : 0,
+        quizzesCompleted: Math.floor(userPoints / 20),
         testsPurchased: 0,
         hasTelegramPremium: false,
         lastActive: 'Just now',
       });
     }
   }
+
+  // Strictly keep only competitors who joined and have points > 0
+  storedBoard = storedBoard.filter(e => e.points > 0);
 
   // Sort strictly descending by total points
   storedBoard.sort((a, b) => b.points - a.points);
@@ -480,7 +547,7 @@ export function getLeaderboardData(currentStudent?: {
     entry.rank = idx + 1;
   });
 
-  // Save the synchronized real board
+  // Save the cleaned real board
   if (typeof window !== 'undefined') {
     try {
       localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(storedBoard));
@@ -488,14 +555,14 @@ export function getLeaderboardData(currentStudent?: {
   }
 
   const userRankIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
-  const userRank = userRankIndex >= 0 ? userRankIndex + 1 : (storedBoard.length + 1);
+  const userRank = userRankIndex >= 0 ? userRankIndex + 1 : (userPoints > 0 ? storedBoard.length + 1 : 0);
   const currentUserEntry: StudentLeaderboardEntry = (userRankIndex >= 0 ? storedBoard[userRankIndex] : null) || {
     id: studentId,
     name: studentName,
     university: currentStudent?.university || 'AAU',
     department: currentStudent?.department || 'General Studies',
     points: userPoints,
-    rank: userRank,
+    rank: userRank || 1,
     quizzesCompleted: 0,
     testsPurchased: 0,
     hasTelegramPremium: false,
@@ -504,11 +571,11 @@ export function getLeaderboardData(currentStudent?: {
 
   // Only take top 20 users for the main visible leaderboard
   const top20 = storedBoard.slice(0, 20);
-  const isUserInTop20 = userPoints > 0 ? userRank <= 20 : false;
+  const isUserInTop20 = userPoints > 0 ? (userRank > 0 && userRank <= 20) : false;
 
-  // Compute points needed to overtake the 20th place
-  const threshold20Points = top20[19]?.points || 50;
-  const pointsToTop20 = Math.max(0, threshold20Points - userPoints + 10);
+  // Compute points needed to overtake the 20th place or 1st place
+  const thresholdPoints = top20.length >= 20 ? top20[19].points : (top20[0]?.points || 50);
+  const pointsToTop20 = Math.max(0, thresholdPoints - userPoints + 10);
 
   const seasonMonth = new Date().toLocaleDateString('en-US', {
     month: 'long',
@@ -524,6 +591,7 @@ export function getLeaderboardData(currentStudent?: {
     seasonMonth,
   };
 }
+
 
 // Generates personalized randomized tests for each student derived from tests they have purchased
 export function getStudentPersonalizedChallenges(userId?: string): CourseQuizChallenge[] {
