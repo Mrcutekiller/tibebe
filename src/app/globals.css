@@ -1,26 +1,891 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800;900&family=Noto+Sans+Ethiopic:wght@300;400;500;600;700;800&display=swap');
+
 @import "tailwindcss";
 
+@theme {
+  --color-green: #0B5D3B;
+  --color-green-dark: #083d28;
+  --color-green-light: #12754b;
+  --color-green-muted: #e8f5ee;
+  --color-green-50: #f0faf4;
+  --color-gold: #E0A526;
+  --color-gold-dark: #c78f15;
+  --color-gold-light: #f0ba3e;
+  --color-gold-muted: #fdf3dc;
+  --color-cream: #FAF6EC;
+  --color-cream-dark: #f0e9d2;
+  --color-ink: #12202B;
+  --color-ink-muted: #2d3f4e;
+  --color-ink-light: #4a6174;
+  --color-red: #C8372D;
+  --color-red-light: #f8d7d5;
+}
+
+/* ============================================
+   TIBEB DESIGN SYSTEM — CSS VARIABLES
+   ============================================ */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors */
+  --color-green: #0B5D3B;
+  --color-green-dark: #083d28;
+  --color-green-light: #12754b;
+  --color-green-muted: #e8f5ee;
+  --color-green-50: #f0faf4;
+  --color-gold: #E0A526;
+  --color-gold-dark: #c78f15;
+  --color-gold-light: #f0ba3e;
+  --color-gold-muted: #fdf3dc;
+  --color-cream: #FAF6EC;
+  --color-cream-dark: #f0e9d2;
+  --color-ink: #12202B;
+  --color-ink-muted: #2d3f4e;
+  --color-ink-light: #4a6174;
+  --color-red: #C8372D;
+  --color-red-light: #f8d7d5;
+
+  /* Neutrals */
+  --color-gray-50: #f9fafb;
+  --color-gray-100: #f3f4f6;
+  --color-gray-200: #e5e7eb;
+  --color-gray-300: #d1d5db;
+  --color-gray-400: #9ca3af;
+  --color-gray-500: #6b7280;
+  --color-gray-600: #4b5563;
+  --color-gray-700: #374151;
+  --color-gray-800: #1f2937;
+  --color-gray-900: #111827;
+
+  /* Typography */
+  --font-primary: 'Poppins', sans-serif;
+  --font-ethiopic: 'Noto Sans Ethiopic', sans-serif;
+
+  /* Spacing scale */
+  --space-1: 0.25rem;
+  --space-2: 0.5rem;
+  --space-3: 0.75rem;
+  --space-4: 1rem;
+  --space-5: 1.25rem;
+  --space-6: 1.5rem;
+  --space-8: 2rem;
+  --space-10: 2.5rem;
+  --space-12: 3rem;
+  --space-16: 4rem;
+  --space-20: 5rem;
+  --space-24: 6rem;
+
+  /* Border radius */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 16px;
+  --radius-xl: 24px;
+  --radius-full: 9999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.08), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.10), 0 2px 4px rgba(0,0,0,0.06);
+  --shadow-lg: 0 10px 30px rgba(0,0,0,0.12), 0 4px 8px rgba(0,0,0,0.08);
+  --shadow-xl: 0 20px 50px rgba(0,0,0,0.15), 0 8px 16px rgba(0,0,0,0.10);
+  --shadow-green: 0 4px 20px rgba(11,93,59,0.25);
+  --shadow-gold: 0 4px 20px rgba(224,165,38,0.35);
+
+  /* Transitions */
+  --transition-fast: 150ms ease;
+  --transition-base: 250ms ease;
+  --transition-slow: 400ms ease;
+
+  /* Z-index */
+  --z-dropdown: 100;
+  --z-sticky: 200;
+  --z-overlay: 300;
+  --z-modal: 400;
+  --z-toast: 500;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
-}
+/* ============================================
+   BASE STYLES
+   ============================================ */
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@layer base {
+  *, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+  }
+
+  html {
+    scroll-behavior: smooth;
+    font-size: 16px;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    overflow-x: hidden;
+    width: 100%;
+    background-color: #083d28;
+  }
+
+  body {
+    font-family: var(--font-primary);
+    background-color: #FAF6EC;
+    color: var(--color-ink);
+    line-height: 1.6;
+    min-height: 100vh;
+    overflow-x: hidden;
+    width: 100%;
+  }
+
+  /* Amharic text baseline fix */
+  :lang(am), [data-lang="am"] {
+    font-family: var(--font-ethiopic);
+    line-height: 1.8;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-primary);
+    font-weight: 700;
+    line-height: 1.2;
+    color: inherit;
+  }
+
+  a {
+    color: inherit;
+    text-decoration: none;
+  }
+
+  img, video {
+    max-width: 100%;
+    height: auto;
+    display: block;
+  }
+
+  input, textarea, select, button {
+    font-family: inherit;
+    font-size: inherit;
+  }
+
+  /* Focus ring for accessibility */
+  :focus-visible {
+    outline: 2px solid var(--color-gold);
+    outline-offset: 2px;
+    border-radius: var(--radius-sm);
   }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ============================================
+   COMPONENT LAYER
+   ============================================ */
+
+@layer components {
+
+  /* ---- Buttons ---- */
+
+  .btn {
+    @apply inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-full font-semibold text-sm transition-all duration-200 cursor-pointer select-none whitespace-nowrap;
+    border: none;
+    outline: none;
+  }
+
+  .btn:disabled {
+    @apply opacity-50 cursor-not-allowed;
+  }
+
+  .btn-primary {
+    @apply bg-gold text-ink hover:bg-gold-dark active:scale-95;
+    background-color: var(--color-gold);
+    color: var(--color-ink) !important;
+    box-shadow: var(--shadow-gold);
+  }
+
+  .btn-primary:hover {
+    background-color: var(--color-gold-dark);
+    transform: translateY(-1px);
+    box-shadow: 0 6px 25px rgba(224,165,38,0.45);
+  }
+
+  .btn-green {
+    @apply text-white;
+    background-color: var(--color-green);
+    color: #ffffff !important;
+    box-shadow: var(--shadow-green);
+  }
+
+  .btn-green:hover {
+    background-color: var(--color-green-light);
+    color: #ffffff !important;
+    transform: translateY(-1px);
+    box-shadow: 0 6px 25px rgba(11,93,59,0.35);
+  }
+
+  .btn-outline {
+    @apply border-2 bg-transparent;
+    border-color: var(--color-green);
+    color: var(--color-green);
+  }
+
+  .btn-outline:hover {
+    background-color: var(--color-green);
+    color: white;
+  }
+
+  .btn-outline-gold {
+    @apply border-2 bg-transparent;
+    border-color: var(--color-gold);
+    color: var(--color-gold);
+  }
+
+  .btn-outline-gold:hover {
+    background-color: var(--color-gold);
+    color: var(--color-ink);
+  }
+
+  .btn-ghost {
+    @apply bg-transparent text-ink-light hover:bg-gray-100;
+  }
+
+  .btn-red {
+    @apply text-white;
+    background-color: var(--color-red);
+  }
+
+  .btn-lg {
+    @apply px-8 py-3.5 text-base;
+  }
+
+  .btn-sm {
+    @apply px-3.5 py-1.5 text-xs;
+  }
+
+  .btn-icon {
+    @apply p-2 w-9 h-9 rounded-full;
+  }
+
+  /* ---- Cards ---- */
+
+  .card {
+    @apply bg-white rounded-2xl overflow-hidden;
+    box-shadow: var(--shadow-md);
+    transition: transform var(--transition-base), box-shadow var(--transition-base);
+  }
+
+  .card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-xl);
+  }
+
+  .card-exam {
+    @apply relative;
+  }
+
+  .card-course {
+    @apply relative;
+  }
+
+  /* ---- Badges ---- */
+
+  .badge {
+    @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs font-semibold;
+  }
+
+  .badge-green {
+    background-color: var(--color-green-muted);
+    color: var(--color-green);
+  }
+
+  .badge-gold {
+    background-color: var(--color-gold-muted);
+    color: var(--color-gold-dark);
+  }
+
+  .badge-red {
+    background-color: var(--color-red-light);
+    color: var(--color-red);
+  }
+
+  .badge-gray {
+    @apply bg-gray-100 text-gray-600;
+  }
+
+  .badge-cream {
+    background-color: var(--color-cream);
+    color: var(--color-ink);
+  }
+
+  /* ---- Form Inputs ---- */
+
+  .input {
+    @apply w-full px-4 py-3 rounded-xl border text-sm transition-all duration-200;
+    border-color: var(--color-gray-300);
+    background-color: white;
+    color: var(--color-ink);
+  }
+
+  .input:focus {
+    outline: none;
+    border-color: var(--color-green);
+    box-shadow: 0 0 0 3px rgba(11,93,59,0.12);
+  }
+
+  .input::placeholder {
+    color: var(--color-gray-400);
+  }
+
+  .input-error {
+    border-color: var(--color-red) !important;
+    box-shadow: 0 0 0 3px rgba(200,55,45,0.12) !important;
+  }
+
+  .label {
+    @apply block text-sm font-semibold mb-1.5;
+    color: var(--color-ink-muted);
+  }
+
+  .form-group {
+    @apply flex flex-col gap-1;
+  }
+
+  .error-text {
+    @apply text-xs mt-1;
+    color: var(--color-red);
+  }
+
+  /* ---- Skeleton Loaders ---- */
+
+  .skeleton {
+    @apply rounded-lg animate-pulse;
+    background: linear-gradient(90deg, var(--color-gray-100) 25%, var(--color-gray-200) 50%, var(--color-gray-100) 75%);
+    background-size: 200% 100%;
+    animation: skeleton-shimmer 1.5s infinite;
+  }
+
+  /* ---- Section Wrapper ---- */
+
+  .section {
+    @apply py-16 px-4;
+  }
+
+  .section-sm {
+    @apply py-10 px-4;
+  }
+
+  .container-tibeb {
+    @apply max-w-7xl mx-auto;
+    width: 100%;
+  }
+
+  .section-title {
+    @apply text-3xl md:text-4xl font-bold mb-3;
+    color: var(--color-ink);
+  }
+
+  .section-subtitle {
+    @apply text-base md:text-lg mb-10;
+    color: var(--color-gray-500);
+  }
+
+  /* ---- Navbar ---- */
+
+  .navbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4rem;
+    padding-left: 1rem;
+    padding-right: 1rem;
+    background: white;
+    box-shadow: 0 1px 0 rgba(0, 0, 0, 0.06);
+    backdrop-filter: blur(10px);
+  }
+
+  @media (min-width: 768px) {
+    .navbar {
+      padding-left: 2rem;
+      padding-right: 2rem;
+    }
+  }
+
+  .navbar-transparent {
+    background: transparent;
+    box-shadow: none;
+  }
+
+  /* ---- Chip / Filter Pill ---- */
+
+  .chip {
+    @apply inline-flex items-center gap-1 px-4 py-2 rounded-full text-sm font-medium cursor-pointer transition-all duration-200 border;
+    border-color: var(--color-gray-200);
+    background: white;
+    color: var(--color-ink-light);
+  }
+
+  .chip:hover {
+    border-color: var(--color-green);
+    color: var(--color-green);
+  }
+
+  .chip-active {
+    background-color: var(--color-green);
+    color: white;
+    border-color: var(--color-green);
+  }
+
+  /* ---- Progress Bar ---- */
+
+  .progress-bar {
+    @apply w-full rounded-full overflow-hidden;
+    height: 6px;
+    background-color: var(--color-gray-100);
+  }
+
+  .progress-fill {
+    @apply h-full rounded-full transition-all duration-500;
+    background: linear-gradient(90deg, var(--color-green), var(--color-gold));
+  }
+
+  /* ---- Star Rating ---- */
+
+  .stars {
+    @apply flex items-center gap-0.5;
+  }
+
+  .star-filled {
+    color: var(--color-gold);
+  }
+
+  .star-empty {
+    color: var(--color-gray-300);
+  }
+
+  /* ---- Lock Overlay ---- */
+
+  .lock-overlay {
+    @apply absolute inset-0 flex flex-col items-center justify-center rounded-2xl;
+    background: rgba(18,32,43,0.65);
+    backdrop-filter: blur(4px);
+  }
+
+  /* ---- Toast ---- */
+
+  .toast {
+    @apply fixed bottom-6 right-4 left-4 md:left-auto md:w-80 flex items-start gap-3 p-4 rounded-xl;
+    box-shadow: var(--shadow-xl);
+    z-index: var(--z-toast);
+  }
+
+  .toast-success {
+    @apply text-white;
+    background-color: var(--color-green);
+  }
+
+  .toast-error {
+    @apply text-white;
+    background-color: var(--color-red);
+  }
+
+  .toast-info {
+    @apply bg-white text-ink;
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* ---- Modal ---- */
+
+  .modal-overlay {
+    @apply fixed inset-0 flex items-center justify-center p-4;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: var(--z-modal);
+  }
+
+  .modal {
+    @apply bg-white rounded-2xl w-full max-w-md p-6;
+    box-shadow: var(--shadow-xl);
+  }
+
+  /* ---- Table ---- */
+
+  .table-tibeb {
+    @apply w-full text-sm text-left;
+  }
+
+  .table-tibeb th {
+    @apply px-4 py-3 font-semibold uppercase text-xs tracking-wider;
+    color: var(--color-gray-500);
+    background-color: var(--color-gray-50);
+    border-bottom: 1px solid var(--color-gray-200);
+  }
+
+  .table-tibeb td {
+    @apply px-4 py-3;
+    border-bottom: 1px solid var(--color-gray-100);
+    color: var(--color-ink);
+  }
+
+  .table-tibeb tr:hover td {
+    background-color: var(--color-green-50);
+  }
+
+  /* ---- Sidebar ---- */
+
+  .sidebar {
+    @apply fixed left-0 top-0 bottom-0 w-64 flex flex-col;
+    background: var(--color-ink);
+    z-index: var(--z-sticky);
+  }
+
+  /* ---- Hero ---- */
+
+  .hero {
+    @apply relative overflow-hidden;
+    background: var(--color-green);
+    min-height: 90vh;
+  }
+
+  .hero-pattern {
+    position: absolute;
+    inset: 0;
+    background-image:
+      repeating-linear-gradient(45deg, rgba(255,255,255,0.03) 0, rgba(255,255,255,0.03) 1px, transparent 0, transparent 50%);
+    background-size: 20px 20px;
+  }
+
+  /* ---- Step indicators ---- */
+
+  .step-circle {
+    @apply flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold;
+    background-color: var(--color-gold);
+    color: var(--color-ink);
+    flex-shrink: 0;
+  }
+
+  .step-circle-inactive {
+    @apply flex items-center justify-center w-10 h-10 rounded-full text-sm font-bold;
+    background-color: var(--color-gray-200);
+    color: var(--color-gray-500);
+    flex-shrink: 0;
+  }
+
+  /* ---- University card ---- */
+
+  .uni-card {
+    @apply p-5 flex flex-col gap-3 cursor-pointer;
+  }
+
+  /* ---- Exam viewer ---- */
+
+  .viewer-page {
+    @apply relative w-full overflow-hidden select-none;
+    user-select: none;
+    -webkit-user-select: none;
+    -moz-user-select: none;
+    pointer-events: none;
+  }
+
+  .watermark {
+    @apply absolute inset-0 flex items-center justify-center pointer-events-none select-none;
+    z-index: 10;
+    transform: rotate(-30deg);
+    opacity: 0.12;
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--color-ink);
+    white-space: nowrap;
+  }
+
+}
+
+/* ============================================
+   UTILITY LAYER
+   ============================================ */
+
+@layer utilities {
+  .text-green { color: var(--color-green); }
+  .text-gold { color: var(--color-gold); }
+  .text-cream { color: var(--color-cream); }
+  .text-ink { color: var(--color-ink); }
+  .text-ink-light { color: var(--color-ink-light); }
+  .text-red-tibeb { color: var(--color-red); }
+
+  .bg-green { background-color: var(--color-green); }
+  .bg-gold { background-color: var(--color-gold); }
+  .bg-cream { background-color: var(--color-cream); }
+  .bg-ink { background-color: var(--color-ink); }
+  .bg-green-muted { background-color: var(--color-green-muted); }
+  .bg-gold-muted { background-color: var(--color-gold-muted); }
+
+  .border-green { border-color: var(--color-green); }
+  .border-gold { border-color: var(--color-gold); }
+
+  .gradient-hero {
+    background: linear-gradient(135deg, var(--color-green) 0%, #0d7048 60%, #083d28 100%);
+  }
+
+  .gradient-gold {
+    background: linear-gradient(135deg, var(--color-gold) 0%, #f0c45a 100%);
+  }
+
+  .gradient-card {
+    background: linear-gradient(145deg, white 0%, var(--color-cream) 100%);
+  }
+
+  .gradient-dark {
+    background: linear-gradient(135deg, var(--color-ink) 0%, #1d3547 100%);
+  }
+
+  .text-gradient-gold {
+    background: linear-gradient(135deg, var(--color-gold), #f0c45a);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .font-ethiopic {
+    font-family: var(--font-ethiopic);
+  }
+
+  .no-select {
+    user-select: none;
+    -webkit-user-select: none;
+  }
+
+  .scrollbar-hide {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none;
+  }
+
+  .ring-green { --tw-ring-color: var(--color-green); }
+  .ring-gold { --tw-ring-color: var(--color-gold); }
+
+  /* Animation helpers */
+  .fade-in {
+    animation: fadeIn 0.4s ease both;
+  }
+  .slide-up {
+    animation: slideUp 0.4s ease both;
+  }
+  .scale-in {
+    animation: scaleIn 0.3s ease both;
+  }
+  .pulse-slow {
+    animation: pulse 3s infinite;
+  }
+}
+
+/* ============================================
+   KEYFRAME ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.95); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes skeleton-shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes ripple {
+  0% { transform: scale(0); opacity: 1; }
+  100% { transform: scale(4); opacity: 0; }
+}
+
+/* ============================================
+   HERO DECORATIVE ELEMENTS
+   ============================================ */
+
+.hero-blob {
+  position: absolute;
+  border-radius: 50%;
+  filter: blur(80px);
+  opacity: 0.15;
+  pointer-events: none;
+}
+
+.hero-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+/* ============================================
+   NAV LINK STYLE
+   ============================================ */
+
+.nav-link {
+  @apply text-sm font-medium transition-colors duration-200 relative;
+  color: var(--color-ink-light);
+}
+
+.nav-link::after {
+  content: '';
+  position: absolute;
+  bottom: -4px;
+  left: 0;
+  width: 0;
+  height: 2px;
+  background-color: var(--color-green);
+  transition: width var(--transition-base);
+  border-radius: 2px;
+}
+
+.nav-link:hover::after,
+.nav-link-active::after {
+  width: 100%;
+}
+
+.nav-link:hover,
+.nav-link-active {
+  color: var(--color-green);
+}
+
+/* ============================================
+   MOBILE BOTTOM SHEET ANIMATION
+   ============================================ */
+
+.sheet-enter {
+  animation: sheetUp 0.35s cubic-bezier(0.32, 0.72, 0, 1) both;
+}
+
+@keyframes sheetUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
+
+/* ============================================
+   RESPONSIVE SCROLLABLE CHIP ROW
+   ============================================ */
+
+.chip-row {
+  @apply flex gap-2 overflow-x-auto pb-2;
+  scrollbar-width: none;
+}
+.chip-row::-webkit-scrollbar {
+  display: none;
+}
+
+/* ============================================
+   ADMIN SIDEBAR
+   ============================================ */
+
+.admin-nav-item {
+  @apply flex items-center gap-3 px-4 py-2.5 rounded-xl text-sm font-medium transition-all duration-150 w-full;
+  color: rgba(255,255,255,0.6);
+}
+
+.admin-nav-item:hover {
+  background: rgba(255,255,255,0.08);
+  color: white;
+}
+
+.admin-nav-item-active {
+  background: var(--color-green) !important;
+  color: white !important;
+}
+
+/* ============================================
+   VIEWER PROTECTION
+   ============================================ */
+
+.protected-content {
+  user-select: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  pointer-events: none;
+}
+
+.protected-content * {
+  pointer-events: none !important;
+}
+
+/* ============================================
+   COURSE PLAYER
+   ============================================ */
+
+.lesson-item {
+  @apply flex items-center gap-3 px-4 py-3 rounded-xl cursor-pointer transition-all duration-150;
+}
+
+.lesson-item:hover {
+  background-color: var(--color-green-muted);
+}
+
+.lesson-item-active {
+  background-color: var(--color-green-muted);
+  border-left: 3px solid var(--color-green);
+}
+
+/* ============================================
+   DELIVERY TIMELINE
+   ============================================ */
+
+.timeline-step {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+}
+
+.timeline-dot {
+  width: 1rem;
+  height: 1rem;
+  border-radius: 9999px;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  background-color: var(--color-gray-300);
+}
+
+.timeline-dot-done {
+  background-color: var(--color-green);
+}
+
+.timeline-dot-current {
+  background-color: var(--color-gold);
+  box-shadow: 0 0 0 4px var(--color-gold-muted);
+}
+
+.timeline-line {
+  width: 2px;
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+  height: 36px;
+  background-color: var(--color-gray-200);
+}
+
+/* ============================================
+   PRINT STYLES (Receipts & Delivery Notes)
+   ============================================ */
+
+@media print {
+  .no-print { display: none !important; }
+  .print-only { display: block !important; }
+
+  body {
+    font-size: 12pt;
+    color: black;
+    background: white;
+  }
+
+  .receipt-paper {
+    width: 148mm; /* A5 */
+    margin: 0 auto;
+    padding: 10mm;
+  }
 }

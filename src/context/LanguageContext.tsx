@@ -14,33 +14,25 @@ interface LanguageContextType {
 const LanguageContext = createContext<LanguageContextType | null>(null);
 
 export function LanguageProvider({ children }: { children: React.ReactNode }) {
-  const [locale, setLocaleState] = useState<Locale>(() => {
-    if (typeof window !== 'undefined') {
-      return (localStorage.getItem('tibeb_locale') as Locale) || 'en';
-    }
-    return 'en';
-  });
+  const [locale] = useState<Locale>('en');
 
-  const setLocale = useCallback((l: Locale) => {
-    setLocaleState(l);
-    if (typeof window !== 'undefined') {
-      localStorage.setItem('tibeb_locale', l);
-    }
+  const setLocale = useCallback((_l: Locale) => {
+    // English only
   }, []);
 
   const toggleLocale = useCallback(() => {
-    setLocale(locale === 'en' ? 'am' : 'en');
-  }, [locale, setLocale]);
+    // English only
+  }, []);
 
   const t = useCallback(
     (key: string) => {
-      return translations[locale][key] ?? translations['en'][key] ?? key;
+      return translations['en'][key] ?? key;
     },
-    [locale]
+    []
   );
 
   return (
-    <LanguageContext.Provider value={{ locale, t, toggleLocale, setLocale, isAmharic: locale === 'am' }}>
+    <LanguageContext.Provider value={{ locale: 'en', t, toggleLocale, setLocale, isAmharic: false }}>
       {children}
     </LanguageContext.Provider>
   );
