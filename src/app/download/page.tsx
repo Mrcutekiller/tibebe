@@ -15,7 +15,7 @@ export default function DownloadAppPage() {
   const [activePlatform, setActivePlatform] = useState<'android' | 'ios'>('android');
   const [copiedSha, setCopiedSha] = useState(false);
 
-  const sha256Checksum = 'rXq9n9qFhVp3c0rL7sXz2bM8eN5fP1kK9tL3wR7yU5g=';
+  const sha256Checksum = '4f656aa9992c8a93c68681b2aa35328e817729e20c27896aac75251db483780f';
 
   const handleCopySha = () => {
     navigator.clipboard.writeText(sha256Checksum);
@@ -137,12 +137,12 @@ export default function DownloadAppPage() {
                     download="tibeb-v1.2.0.apk"
                     className="px-5 py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-ink font-bold text-xs transition-all flex items-center justify-center gap-2 text-center"
                   >
-                    Direct Mirror (8.4 MB)
+                    Direct Mirror (83 KB)
                   </a>
                 </div>
 
                 <p className="text-[11px] text-gray-400">
-                  ⚡ Compatible with Samsung, Xiaomi, Tecno, Infinix, Huawei, and all Android 8.0+ devices.
+                  ⚡ Compatible with Samsung, Xiaomi, Tecno, Infinix, Huawei, and all Android 7.0+ devices.
                 </p>
               </div>
 
@@ -159,17 +159,17 @@ export default function DownloadAppPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">Version</span>
-                  <span className="font-mono font-bold text-emerald-700">v1.2.0 (Build 104)</span>
+                  <span className="font-mono font-bold text-emerald-700">v1.2.0 (Build 120)</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">File Size</span>
-                  <span className="font-bold text-ink">8.4 MB</span>
+                  <span className="font-bold text-ink">83 KB (Instant Install)</span>
                 </div>
 
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">Android Requirement</span>
-                  <span className="font-bold text-ink">Android 8.0 (Oreo) +</span>
+                  <span className="font-bold text-ink">Android 7.0 (Nougat) to Android 14+</span>
                 </div>
 
                 <div className="pt-2 border-t border-gray-200 space-y-1">
@@ -271,7 +271,6 @@ export default function DownloadAppPage() {
                 <div className="pt-2 flex flex-col sm:flex-row items-stretch sm:items-center gap-3">
                   <a
                     href="/api/download?type=mobileconfig"
-                    download="tibeb.mobileconfig"
                     className="px-6 py-4 rounded-2xl bg-[#12202B] hover:bg-slate-800 text-white font-black text-sm transition-all shadow-lg hover:shadow-xl flex items-center justify-center gap-2.5 cursor-pointer text-center"
                   >
                     <Apple size={18} />
@@ -286,6 +285,19 @@ export default function DownloadAppPage() {
                     <Download size={15} />
                     Download .IPA Package (v1.2.0)
                   </a>
+                </div>
+
+                {/* Important iOS Steps Notice */}
+                <div className="p-4 rounded-2xl bg-amber-50 border border-amber-200/80 text-xs text-amber-900 space-y-1.5">
+                  <div className="font-black flex items-center gap-2 text-amber-950">
+                    <Info size={14} className="text-amber-600" />
+                    When installing on iPhone or iPad:
+                  </div>
+                  <p className="leading-relaxed text-[11px] text-amber-800">
+                    1. Tap <strong>1-Tap Install iOS Profile</strong> above and tap <strong>Allow</strong> when Safari asks to download.<br />
+                    2. Open your iPhone <strong>Settings</strong> app → tap <strong>&quot;Profile Downloaded&quot;</strong> near the top.<br />
+                    3. Tap <strong>Install</strong> in the top-right corner, enter your passcode, and tap <strong>Done</strong>!
+                  </p>
                 </div>
 
                 <p className="text-[11px] text-gray-400">
