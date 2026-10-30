@@ -114,6 +114,8 @@ export function saveVerifications(list: PaymentVerification[]): void {
   if (typeof window === 'undefined') return;
   try {
     localStorage.setItem('tibeb_payment_verifications', JSON.stringify(list));
+    window.dispatchEvent(new Event('tibeb_verifications_updated'));
+    window.dispatchEvent(new Event('storage'));
   } catch (e) {
     console.error('Failed to save payment verifications:', e);
   }

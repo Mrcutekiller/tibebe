@@ -194,3 +194,4 @@ export function recordCouponUsage(code: string, userId?: string): boolean {
   saveCoupons(coupons);
   return true;
 }
+

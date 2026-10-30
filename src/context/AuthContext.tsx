@@ -102,6 +102,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       localStorage.setItem('tibeb_wallet_balance', '0');
     }
 
+    const handleWalletSync = () => {
+      const storedBal = localStorage.getItem('tibeb_wallet_balance');
+      if (storedBal !== null) {
+        setWalletBalance(parseFloat(storedBal) || 0);
+      }
+      const storedU = localStorage.getItem('tibeb_user');
+      if (storedU) {
+        try {
+          setUser(JSON.parse(storedU));
+        } catch {}
+      }
+    };
+
+    window.addEventListener('tibeb_wallet_updated', handleWalletSync);
+    window.addEventListener('storage', handleWalletSync);
+
     // 3. Listen to Supabase Auth state changes (including Google OAuth callback)
     const { data: authListener } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (session?.user) {
@@ -140,6 +156,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     return () => {
       authListener?.subscription?.unsubscribe();
+      window.removeEventListener('tibeb_wallet_updated', handleWalletSync);
+      window.removeEventListener('storage', handleWalletSync);
     };
   }, []);
 

@@ -488,10 +488,21 @@ export default function AdminPortalPage() {
     toast.success('Live reply sent to student chat!', { icon: '💬' });
   };
 
-  // Load Verifications on mount
-  useEffect(() => {
+  // Load Verifications on mount & listen for live student deposit/order updates
+  const refreshVerifications = () => {
     const list = getStoredVerifications();
     setVerifications(list);
+  };
+
+  useEffect(() => {
+    refreshVerifications();
+    const handleVerifUpdate = () => refreshVerifications();
+    window.addEventListener('tibeb_verifications_updated', handleVerifUpdate);
+    window.addEventListener('storage', handleVerifUpdate);
+    return () => {
+      window.removeEventListener('tibeb_verifications_updated', handleVerifUpdate);
+      window.removeEventListener('storage', handleVerifUpdate);
+    };
   }, []);
 
   const isAdmin = user?.role === 'admin';
@@ -516,13 +527,18 @@ export default function AdminPortalPage() {
     }
   };
 
-  // Confirm & Approve Payment
+  // Confirm & Approve Payment (Crediting student wallet on deposit, unlocking exams, adjusting sales)
   const handleApprove = (verif: PaymentVerification) => {
+    const wasRejected = verif.status === 'rejected';
+    const isDeposit = verif.orderId?.startsWith('DEP-') || verif.items?.some(i => i.type === 'deposit');
+    const creditAmount = verif.amount || 0;
+
     const updated = verifications.map(v => {
       if (v.id === verif.id) {
         return {
           ...v,
           status: 'approved' as const,
+          rejectionReason: undefined,
           reviewedBy: user?.email || 'tibebexams@gmail.com',
           reviewedAt: 'Just now'
         };
@@ -533,19 +549,65 @@ export default function AdminPortalPage() {
     setVerifications(updated);
     saveVerifications(updated);
 
-    // Auto-unlock the items in localStorage for this student
     try {
-      const isDeposit = verif.orderId?.startsWith('DEP-') || verif.items?.some(i => i.type === 'deposit');
-      if (isDeposit) {
+      // If it is a deposit that was either pending or previously rejected, credit student balance
+      if (isDeposit && (wasRejected || verif.status === 'pending')) {
+        // 1. Update registered users database
+        const usersRaw = localStorage.getItem('tibeb_registered_users');
+        if (usersRaw) {
+          const users = JSON.parse(usersRaw);
+          const updatedUsers = users.map((u: any) => {
+            if (
+              u.id === verif.userId ||
+              (verif.userEmail && u.email?.toLowerCase() === verif.userEmail.toLowerCase()) ||
+              (verif.userUsername && u.username?.toLowerCase() === verif.userUsername.toLowerCase())
+            ) {
+              const curBal = Number(u.walletBalance || 0);
+              return { ...u, walletBalance: curBal + creditAmount };
+            }
+            return u;
+          });
+          localStorage.setItem('tibeb_registered_users', JSON.stringify(updatedUsers));
+          setRegisteredStudents(updatedUsers);
+        }
+
+        // 2. Update active user session if applicable
         const curBal = parseFloat(localStorage.getItem('tibeb_wallet_balance') || '0');
-        const nextBal = curBal + verif.amount;
+        const nextBal = curBal + creditAmount;
         localStorage.setItem('tibeb_wallet_balance', nextBal.toString());
+
+        const activeUserRaw = localStorage.getItem('tibeb_user');
+        if (activeUserRaw) {
+          const activeUser = JSON.parse(activeUserRaw);
+          if (
+            activeUser.id === verif.userId ||
+            (verif.userEmail && activeUser.email?.toLowerCase() === verif.userEmail.toLowerCase())
+          ) {
+            activeUser.walletBalance = nextBal;
+            localStorage.setItem('tibeb_user', JSON.stringify(activeUser));
+          }
+        }
+
+        // 3. Log transaction in student ledger
+        const txs = JSON.parse(localStorage.getItem('tibeb_transactions') || '[]');
+        txs.unshift({
+          id: 'tx-dep-' + Date.now(),
+          type: 'deposit',
+          amount: creditAmount,
+          date: new Date().toISOString(),
+          description: `Admin Verified Deposit: +${creditAmount} ETB`,
+          status: 'completed',
+        });
+        localStorage.setItem('tibeb_transactions', JSON.stringify(txs));
       }
 
-      const existingUnlocked = JSON.parse(localStorage.getItem('tibeb_unlocked_items') || '[]');
-      const newIds = verif.items.map(i => i.id);
-      const combined = Array.from(new Set([...existingUnlocked, ...newIds]));
-      localStorage.setItem('tibeb_unlocked_items', JSON.stringify(combined));
+      // If it's an exam purchase, ensure items are unlocked
+      if (!isDeposit && verif.items && verif.items.length > 0) {
+        const existingUnlocked = JSON.parse(localStorage.getItem('tibeb_unlocked_items') || '[]');
+        const newIds = verif.items.map(i => i.id);
+        const combined = Array.from(new Set([...existingUnlocked, ...newIds]));
+        localStorage.setItem('tibeb_unlocked_items', JSON.stringify(combined));
+      }
 
       // Update orders
       const orders = JSON.parse(localStorage.getItem('tibeb_orders') || '[]');
@@ -553,18 +615,26 @@ export default function AdminPortalPage() {
         o.id === verif.orderId ? { ...o, status: 'Paid' } : o
       );
       localStorage.setItem('tibeb_orders', JSON.stringify(updatedOrders));
-    } catch {}
 
-    toast.success(`Payment ${verif.id} approved! ${verif.orderId?.startsWith('DEP-') ? `+${verif.amount} ETB credited to ${verif.userName}'s wallet.` : `Exam unlocked for ${verif.userName}.`}`, {
+      window.dispatchEvent(new Event('storage'));
+      window.dispatchEvent(new Event('tibeb_wallet_updated'));
+    } catch (err) {
+      console.error('Error crediting student on approval:', err);
+    }
+
+    toast.success(`Payment ${verif.id} approved! ${isDeposit ? `+${verif.amount} ETB credited to ${verif.userName}'s wallet.` : `Items unlocked for ${verif.userName}.`}`, {
       icon: '✅',
       duration: 4000
     });
   };
 
-  // Submit Rejection
+  // Submit Rejection (Allows rejecting pending submissions OR revoking previously approved deposits/purchases)
   const handleConfirmReject = () => {
     if (!rejectingVerif) return;
     const finalReason = customRejectNote ? `${rejectReason}: ${customRejectNote}` : rejectReason;
+    const wasApproved = rejectingVerif.status === 'approved';
+    const isDeposit = rejectingVerif.orderId?.startsWith('DEP-') || rejectingVerif.items?.some(i => i.type === 'deposit');
+    const deductAmount = rejectingVerif.amount || 0;
 
     const updated = verifications.map(v => {
       if (v.id === rejectingVerif.id) {
@@ -582,8 +652,89 @@ export default function AdminPortalPage() {
     setVerifications(updated);
     saveVerifications(updated);
 
-    toast.error(`Verification ${rejectingVerif.id} rejected. Reason logged for student.`, {
-      icon: '❌'
+    // If it was already approved OR is a deposit, deduct the deposit amount from the student's wallet balance
+    if (wasApproved || isDeposit) {
+      try {
+        // 1. Update registered users database
+        const usersRaw = localStorage.getItem('tibeb_registered_users');
+        if (usersRaw) {
+          const users = JSON.parse(usersRaw);
+          const updatedUsers = users.map((u: any) => {
+            if (
+              u.id === rejectingVerif.userId ||
+              (rejectingVerif.userEmail && u.email?.toLowerCase() === rejectingVerif.userEmail.toLowerCase()) ||
+              (rejectingVerif.userUsername && u.username?.toLowerCase() === rejectingVerif.userUsername.toLowerCase())
+            ) {
+              const curBal = Number(u.walletBalance || 0);
+              const newBal = Math.max(0, curBal - deductAmount);
+              return { ...u, walletBalance: newBal };
+            }
+            return u;
+          });
+          localStorage.setItem('tibeb_registered_users', JSON.stringify(updatedUsers));
+          setRegisteredStudents(updatedUsers);
+        }
+
+        // 2. Update current active user session if it belongs to this student
+        const activeUserRaw = localStorage.getItem('tibeb_user');
+        if (activeUserRaw) {
+          const activeUser = JSON.parse(activeUserRaw);
+          if (
+            activeUser.id === rejectingVerif.userId ||
+            (rejectingVerif.userEmail && activeUser.email?.toLowerCase() === rejectingVerif.userEmail.toLowerCase()) ||
+            (rejectingVerif.userUsername && activeUser.username?.toLowerCase() === rejectingVerif.userUsername.toLowerCase())
+          ) {
+            const curBal = parseFloat(localStorage.getItem('tibeb_wallet_balance') || '0');
+            const nextBal = Math.max(0, curBal - deductAmount);
+            localStorage.setItem('tibeb_wallet_balance', nextBal.toString());
+            activeUser.walletBalance = nextBal;
+            localStorage.setItem('tibeb_user', JSON.stringify(activeUser));
+          }
+        } else {
+          const curBal = parseFloat(localStorage.getItem('tibeb_wallet_balance') || '0');
+          if (curBal > 0) {
+            const nextBal = Math.max(0, curBal - deductAmount);
+            localStorage.setItem('tibeb_wallet_balance', nextBal.toString());
+          }
+        }
+
+        // 3. Log a reversal transaction in student ledger
+        const txs = JSON.parse(localStorage.getItem('tibeb_transactions') || '[]');
+        txs.unshift({
+          id: 'tx-rev-' + Date.now(),
+          type: 'reversal',
+          amount: -deductAmount,
+          date: new Date().toISOString(),
+          description: `Admin Payment Reversal: Deposit Rejected (-${deductAmount} ETB)`,
+          status: 'rejected',
+        });
+        localStorage.setItem('tibeb_transactions', JSON.stringify(txs));
+
+        // 4. If items were unlocked for an exam order, revoke them
+        if (!isDeposit && rejectingVerif.items && rejectingVerif.items.length > 0) {
+          const unlocked = JSON.parse(localStorage.getItem('tibeb_unlocked_items') || '[]');
+          const revokeIds = new Set(rejectingVerif.items.map(i => i.id));
+          const filteredUnlocked = unlocked.filter((id: string) => !revokeIds.has(id));
+          localStorage.setItem('tibeb_unlocked_items', JSON.stringify(filteredUnlocked));
+        }
+
+        // 5. Update orders status to Rejected
+        const orders = JSON.parse(localStorage.getItem('tibeb_orders') || '[]');
+        const updatedOrders = orders.map((o: any) =>
+          o.id === rejectingVerif.orderId ? { ...o, status: 'Rejected' } : o
+        );
+        localStorage.setItem('tibeb_orders', JSON.stringify(updatedOrders));
+
+        window.dispatchEvent(new Event('storage'));
+        window.dispatchEvent(new Event('tibeb_wallet_updated'));
+      } catch (err) {
+        console.error('Error deducting student balance on rejection:', err);
+      }
+    }
+
+    toast.error(`Verification ${rejectingVerif.id} marked as Rejected. ${isDeposit ? `Deducted ETB ${rejectingVerif.amount} from student wallet.` : ''}`, {
+      icon: '❌',
+      duration: 5000
     });
 
     setRejectingVerif(null);
@@ -592,34 +743,67 @@ export default function AdminPortalPage() {
 
   // Helper to open Student Profile Drawer by ID or username
   const handleOpenStudentProfile = (studentIdOrUsername: string, fallbackName?: string) => {
-    const found =
-      MOCK_STUDENT_PROFILES[studentIdOrUsername] ||
-      Object.values(MOCK_STUDENT_PROFILES).find(
-        p => p.username === studentIdOrUsername || p.name === fallbackName
-      );
+    let regUsers: any[] = registeredStudents;
+    try {
+      const raw = localStorage.getItem('tibeb_registered_users');
+      if (raw) regUsers = JSON.parse(raw);
+    } catch {}
 
-    if (found) {
-      setSelectedStudent(found);
-    } else {
-      // Dynamic profile fallback
+    const regUser = regUsers.find(
+      u => u.id === studentIdOrUsername ||
+           u.email?.toLowerCase() === studentIdOrUsername.toLowerCase() ||
+           u.name === fallbackName ||
+           u.name === studentIdOrUsername ||
+           u.username === studentIdOrUsername
+    );
+
+    const studentVerifs = verifications.filter(v => v.userId === studentIdOrUsername || v.userName === fallbackName);
+    const totalSpent = studentVerifs
+      .filter(v => v.status === 'approved')
+      .reduce((sum, v) => sum + (v.amount || 0), 0);
+    const unlockedCount = studentVerifs
+      .filter(v => v.status === 'approved' && !v.orderId?.startsWith('DEP-'))
+      .reduce((sum, v) => sum + (v.items?.length || 1), 0);
+
+    if (regUser) {
       setSelectedStudent({
-        id: studentIdOrUsername,
-        name: fallbackName || studentIdOrUsername,
-        username: studentIdOrUsername.toLowerCase().replace(/\s+/g, '_'),
-        email: `${studentIdOrUsername.toLowerCase().replace(/\s+/g, '.')}@aau.edu.et`,
-        phone: '+251 91 100 0000',
-        telegram: `@${studentIdOrUsername.toLowerCase().replace(/\s+/g, '_')}`,
-        university: 'Addis Ababa University',
-        department: 'Engineering / Sciences',
-        year: 3,
-        studentIdNo: 'UGR/5521/14',
-        totalSpent: 60,
-        unlockedCount: 3,
-        ordersCount: 3,
-        joinedDate: 'Oct 2024',
-        status: 'verified'
+        id: regUser.id,
+        name: regUser.name,
+        username: regUser.username || regUser.email?.split('@')[0] || regUser.name.toLowerCase().replace(/\s+/g, '_'),
+        email: regUser.email || `${regUser.name.toLowerCase().replace(/\s+/g, '.')}@gmail.com`,
+        phone: regUser.phone || '+251 91 100 0000',
+        telegram: regUser.telegram || `@${regUser.name.toLowerCase().replace(/\s+/g, '_')}`,
+        university: regUser.university || 'Addis Ababa University',
+        department: regUser.department || 'Engineering / Sciences',
+        year: regUser.year || 3,
+        studentIdNo: regUser.studentIdNo || `UGR/${regUser.id.slice(-4)}/14`,
+        totalSpent: totalSpent,
+        unlockedCount: unlockedCount,
+        ordersCount: studentVerifs.length,
+        joinedDate: regUser.createdAt ? new Date(regUser.createdAt).toLocaleDateString() : 'Recent',
+        status: 'active'
       });
+      return;
     }
+
+    // Dynamic profile fallback
+    setSelectedStudent({
+      id: studentIdOrUsername,
+      name: fallbackName || studentIdOrUsername,
+      username: studentIdOrUsername.toLowerCase().replace(/\s+/g, '_'),
+      email: `${studentIdOrUsername.toLowerCase().replace(/\s+/g, '.')}@aau.edu.et`,
+      phone: '+251 91 100 0000',
+      telegram: `@${studentIdOrUsername.toLowerCase().replace(/\s+/g, '_')}`,
+      university: 'Addis Ababa University',
+      department: 'Engineering / Sciences',
+      year: 3,
+      studentIdNo: `UGR/${studentIdOrUsername.slice(-4)}/14`,
+      totalSpent: totalSpent,
+      unlockedCount: unlockedCount,
+      ordersCount: studentVerifs.length,
+      joinedDate: 'Recent',
+      status: 'active'
+    });
   };
 
   // Post Exam Handler
@@ -683,12 +867,35 @@ export default function AdminPortalPage() {
     setReplyText('');
   };
 
-  // Verification filtering
+  // Verification filtering & Real-time Total Sales calculation
   const pendingCount = verifications.filter(v => v.status === 'pending').length;
-  const totalVerifiedSales = verifications
-    .filter(v => v.status === 'approved')
-    .reduce((sum, v) => sum + (v.amount || 20), 0);
-  const totalVerifiedCount = verifications.filter(v => v.status === 'approved').length;
+  const verifiedVerifs = verifications.filter(v => v.status === 'approved');
+  const verifOrderIds = new Set(verifications.map(v => v.orderId));
+
+  const [storedOrders, setStoredOrders] = useState<any[]>([]);
+
+  useEffect(() => {
+    const loadOrders = () => {
+      try {
+        const ords = JSON.parse(localStorage.getItem('tibeb_orders') || '[]');
+        if (Array.isArray(ords)) setStoredOrders(ords);
+      } catch {}
+    };
+    loadOrders();
+    window.addEventListener('storage', loadOrders);
+    return () => window.removeEventListener('storage', loadOrders);
+  }, [verifications, activeTab]);
+
+  const standaloneOrders = storedOrders.filter(
+    (o: any) => (o.status === 'Paid' || o.status === 'Completed') && !verifOrderIds.has(o.id)
+  );
+
+  const totalSalesFromVerifs = verifiedVerifs.reduce((sum, v) => sum + (v.amount || 0), 0);
+  const totalSalesFromOrders = standaloneOrders.reduce((sum, o) => sum + (o.total || o.price || 0), 0);
+
+  const totalVerifiedSales = totalSalesFromVerifs + totalSalesFromOrders;
+  const totalVerifiedCount = verifiedVerifs.length + standaloneOrders.length;
+
   const filteredVerifications = verifications.filter(v => {
     if (verifFilter !== 'all' && v.status !== verifFilter) return false;
     if (searchQuery) {
@@ -1262,11 +1469,23 @@ export default function AdminPortalPage() {
             </div>
 
             {/* Verification Submissions List */}
-            {filteredVerifications.length === 0 ? (
+            {verifications.length === 0 ? (
+              <div className="bg-white rounded-3xl p-16 text-center border border-dashed border-gray-200 space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-gray-50 text-gray-400 mx-auto flex items-center justify-center border border-gray-100">
+                  <QrCode size={32} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-ink text-base">Verification Queue Empty</h3>
+                  <p className="text-xs text-gray-400 max-w-sm mx-auto mt-1">
+                    Tibeb is clean and live. When university students deposit via Telebirr or CBE, or upload payment receipts to purchase tests, submissions will automatically appear here for verification and audit.
+                  </p>
+                </div>
+              </div>
+            ) : filteredVerifications.length === 0 ? (
               <div className="bg-white rounded-3xl p-12 text-center border border-gray-100">
                 <QrCode size={48} className="text-gray-300 mx-auto mb-3" />
                 <h3 className="font-bold text-ink text-base">No Verifications Found</h3>
-                <p className="text-xs text-gray-400 mt-1">There are no payment uploads matching your current filter.</p>
+                <p className="text-xs text-gray-400 mt-1">There are no payment uploads matching your current filter ({verifFilter}).</p>
               </div>
             ) : (
               <div className="grid grid-cols-1 gap-4">
@@ -1433,18 +1652,32 @@ export default function AdminPortalPage() {
                           )}
 
                           {isApproved && (
-                            <div className="p-2 bg-emerald-50 rounded-xl text-center text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5">
-                              <CheckCircle2 size={14} /> Exam Unlocked for Student
+                            <div className="space-y-2 pt-1">
+                              <div className="p-2 bg-emerald-50 rounded-xl text-center text-xs font-bold text-emerald-800 flex items-center justify-center gap-1.5 border border-emerald-200/60">
+                                <CheckCircle2 size={14} /> Approved & Verified (+{verif.amount} ETB)
+                              </div>
+                              <button
+                                onClick={() => setRejectingVerif(verif)}
+                                className="w-full py-2 px-3 rounded-xl border border-rose-200 bg-rose-50/50 hover:bg-rose-100 text-rose-700 text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 cursor-pointer shadow-xs"
+                                title="Change to rejected and deduct deposit amount from student wallet"
+                              >
+                                <XCircle size={13} /> Change to Reject (Deduct -{verif.amount} ETB)
+                              </button>
                             </div>
                           )}
 
                           {isRejected && (
-                            <button
-                              onClick={() => handleApprove(verif)}
-                              className="py-2 px-3 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50 transition-all text-center"
-                            >
-                              Re-evaluate & Approve
-                            </button>
+                            <div className="space-y-2 pt-1">
+                              <div className="p-2 bg-rose-50 rounded-xl text-center text-xs font-bold text-rose-800 flex items-center justify-center gap-1.5 border border-rose-200/60">
+                                <XCircle size={14} /> Rejected
+                              </div>
+                              <button
+                                onClick={() => handleApprove(verif)}
+                                className="w-full py-2 px-3 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-extrabold shadow-sm transition-all flex items-center justify-center gap-1.5 cursor-pointer"
+                              >
+                                <CheckCircle size={13} /> Change to Approved (+{verif.amount} ETB)
+                              </button>
+                            </div>
                           )}
                         </div>
 
@@ -3090,6 +3323,16 @@ export default function AdminPortalPage() {
               This rejection notice and the reason selected below will be displayed to <strong>{rejectingVerif.userName}</strong> (@{rejectingVerif.userUsername}) and logged in their audit drawer.
             </div>
 
+            {rejectingVerif.status === 'approved' && (
+              <div className="p-3 bg-amber-50 rounded-2xl border border-amber-200 text-xs text-amber-900 flex items-start gap-2">
+                <AlertTriangle size={15} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <strong className="block">Notice: Previously Approved Payment</strong>
+                  Changing this verification to rejected will automatically revoke <strong>ETB {rejectingVerif.amount}</strong> from student <strong>{rejectingVerif.userName}</strong>&apos;s wallet balance and adjust total sales.
+                </div>
+              </div>
+            )}
+
             <div className="space-y-3">
               <label className="block text-xs font-extrabold text-gray-700">Select Primary Rejection Reason</label>
               {[
@@ -3139,9 +3382,12 @@ export default function AdminPortalPage() {
               </button>
               <button
                 onClick={handleConfirmReject}
-                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md transition-all flex items-center gap-1.5"
+                className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-black shadow-md transition-all flex items-center gap-1.5 cursor-pointer"
               >
-                <XCircle size={15} /> Confirm & Log Rejection
+                <XCircle size={15} />
+                {rejectingVerif.status === 'approved'
+                  ? `Reject & Deduct ${rejectingVerif.amount} ETB`
+                  : 'Confirm & Log Rejection'}
               </button>
             </div>
           </div>
