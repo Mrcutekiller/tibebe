@@ -59,9 +59,24 @@ create table if not exists public.users (
     avatar_url text,
     wallet_balance numeric not null default 0 check (wallet_balance >= 0),
     competition_points integer not null default 0 check (competition_points >= 0),
+    referral_code text unique,
+    referred_by text,
+    referral_wallet_balance numeric not null default 0 check (referral_wallet_balance >= 0),
     is_test_account boolean not null default false,
     created_at timestamptz not null default now(),
     updated_at timestamptz not null default now()
+);
+
+
+-- STUDENT REFERRALS (Invite a Classmate, Get 5 ETB)
+create table if not exists public.referrals (
+    id text primary key,
+    referrer_id text not null references public.users(id) on delete cascade,
+    referred_user_id text not null references public.users(id) on delete cascade,
+    status text not null default 'pending' check (status in ('pending', 'completed')),
+    reward_amount numeric not null default 5,
+    completed_at timestamptz,
+    created_at timestamptz not null default now()
 );
 
 -- EXAMS (Real exam papers only, starting empty)

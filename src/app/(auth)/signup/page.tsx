@@ -12,6 +12,7 @@ import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import Button from '@/components/ui/Button';
 import { UNIVERSITIES } from '@/lib/seed-data';
+import { recordReferralSignup } from '@/lib/referral-store';
 import toast from 'react-hot-toast';
 
 type WizardStep = 1 | 2 | 3;
@@ -44,6 +45,7 @@ function SignupContent() {
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
+  const [referralCodeInput, setReferralCodeInput] = useState(searchParams.get('ref') || '');
 
   // Step 2: Personal Profile & Photo
   const [name, setName] = useState('');
@@ -153,6 +155,18 @@ function SignupContent() {
     setLoading(false);
 
     if (res.success) {
+      if (referralCodeInput.trim() && res.user) {
+        try {
+          recordReferralSignup(referralCodeInput.trim(), {
+            id: res.user.id,
+            name: res.user.name,
+            university: universityId,
+            department: department.trim(),
+          });
+        } catch (refErr) {
+          console.warn('Referral signup record error:', refErr);
+        }
+      }
       toast.success('Registration complete! Welcome to Tibeb 🎉');
       router.push(decodeURIComponent(returnTo));
     } else {
@@ -391,6 +405,26 @@ function SignupContent() {
                 {errors.confirmPassword && (
                   <p className="text-xs text-red-500 mt-1">{errors.confirmPassword}</p>
                 )}
+              </div>
+
+              {/* Referral Code (Optional) */}
+              <div>
+                <label className="block text-xs font-bold text-ink-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
+                  <span>Referral Code (Optional)</span>
+                  {searchParams.get('ref') && (
+                    <span className="text-[10px] text-[#0B5D3B] font-bold">🎁 Link Applied</span>
+                  )}
+                </label>
+                <input
+                  type="text"
+                  value={referralCodeInput}
+                  onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. TIBEB-84F2"
+                  className="w-full px-4 py-3 bg-white border border-gray-300 focus:border-green focus:ring-2 focus:ring-green/10 rounded-xl text-ink text-sm font-mono placeholder:text-gray-400 placeholder:font-sans transition-all outline-none uppercase"
+                />
+                <p className="text-[11px] text-gray-400 mt-1">
+                  If a classmate invited you, enter their code so they receive their 5 ETB reward after your 1st test unlock.
+                </p>
               </div>
 
               <Button

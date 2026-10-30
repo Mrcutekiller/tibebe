@@ -42,9 +42,28 @@ export default function CatalogPage() {
 
   const selectedUniversity = UNIVERSITIES.find(u => u.id === selectedUni);
 
+  const allAvailableExams = useMemo(() => [...customExams, ...EXAMS], [customExams]);
+
+  // HIDE EMPTY: Only show universities that have uploaded exams
+  const activeUniversities = useMemo(() => {
+    const uniIdsWithExams = new Set(allAvailableExams.map(e => e.university_id?.toLowerCase()).filter(Boolean));
+    return UNIVERSITIES.filter(u => uniIdsWithExams.has(u.id.toLowerCase()));
+  }, [allAvailableExams]);
+
+  // HIDE EMPTY: Only show courses that have uploaded exams
+  const activeCourses = useMemo(() => {
+    const map = new Map<string, string>();
+    allAvailableExams.forEach(e => {
+      if (e.code) {
+        map.set(e.code, `${e.title || e.subject || e.code} (${e.code})`);
+      }
+    });
+    return Array.from(map.entries()).map(([code, label]) => ({ id: code, label }));
+  }, [allAvailableExams]);
+
   // Filter exams
   const filteredExams = useMemo(() => {
-    let items = [...customExams, ...EXAMS];
+    let items = [...allAvailableExams];
 
     if (selectedUni !== 'all') items = items.filter(e => e.university_id === selectedUni);
     if (selectedDept !== 'all') items = items.filter(e => e.department.toLowerCase().includes(selectedDept.toLowerCase()));
@@ -146,8 +165,8 @@ export default function CatalogPage() {
                         setSelectedDept('all');
                       }}
                     >
-                      <option value="all">All Universities ({UNIVERSITIES.length})</option>
-                      {UNIVERSITIES.map((uni) => (
+                      <option value="all">All Active Campuses ({activeUniversities.length})</option>
+                      {activeUniversities.map((uni) => (
                         <option key={uni.id} value={uni.id}>
                           {uni.name} ({uni.short})
                         </option>
@@ -163,12 +182,10 @@ export default function CatalogPage() {
                       value={selectedCourse}
                       onChange={(e) => setSelectedCourse(e.target.value)}
                     >
-                      <option value="all">All Courses</option>
-                      <option value="MATH 1011">MATH 1011 - Applied Mathematics</option>
-                      <option value="PHYS 1011">PHYS 1011 - General Physics I</option>
-                      <option value="PHYS 1022">PHYS 1022 - General Physics II</option>
-                      <option value="COSC 1011">COSC 1011 - Computer Science</option>
-                      <option value="FLEn 1011">FLEn 1011 - Communicative English</option>
+                      <option value="all">All Active Courses ({activeCourses.length})</option>
+                      {activeCourses.map((c) => (
+                        <option key={c.id} value={c.id}>{c.label}</option>
+                      ))}
                     </select>
                   </div>
 
@@ -225,14 +242,7 @@ export default function CatalogPage() {
 
             {/* Quick Course Pills Filter */}
             <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
-              {[
-                { id: 'all', label: 'All Courses' },
-                { id: 'MATH 1011', label: 'Applied Mathematics (MATH 1011)' },
-                { id: 'PHYS 1011', label: 'General Physics I (PHYS 1011)' },
-                { id: 'PHYS 1022', label: 'General Physics II (PHYS 1022)' },
-                { id: 'COSC 1011', label: 'Computer Science (COSC 1011)' },
-                { id: 'FLEn 1011', label: 'Communicative English (FLEn 1011)' },
-              ].map((course) => (
+              {[{ id: 'all', label: 'All Courses' }, ...activeCourses].map((course) => (
                 <button
                   key={course.id}
                   onClick={() => setSelectedCourse(course.id)}

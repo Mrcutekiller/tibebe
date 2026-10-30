@@ -3,6 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { awardStudentPoints, POINT_REWARDS } from '@/lib/competition-store';
+import { triggerReferralPurchaseReward } from '@/lib/referral-store';
 
 export interface User {
   id: string;
@@ -494,6 +495,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           university: user.university_id?.toUpperCase() || 'AAU',
           department: user.department || 'Student'
         });
+
+        // Trigger referral reward: If this student was invited by a classmate, award 5 ETB to referrer!
+        triggerReferralPurchaseReward(user.id);
       }
     } catch {}
 

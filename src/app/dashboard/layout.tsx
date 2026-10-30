@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Sparkles, FileText, Library, ShoppingBag,
   Award, Zap, Settings, HelpCircle, LogOut, Wallet, Plus,
-  Menu, X, Shield, Globe, ArrowRight, ArrowUpRight, ChevronRight, UserCheck, Trophy, Smartphone
+  Menu, X, Shield, Globe, ArrowRight, ArrowUpRight, ChevronRight, UserCheck, Trophy, Smartphone, Gift
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -21,6 +21,7 @@ const MAIN_NAV_ITEMS = [
   { href: '/dashboard/library', label: 'My Library', icon: Library },
   { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy, badge: '🏆 1K' },
   { href: '/payment?tab=withdraw', label: 'Deposit & Withdraw', icon: Wallet, badge: 'Min 20' },
+  { href: '/dashboard/referrals', label: 'Invite Friends (Get 5 ETB)', icon: Gift, badge: '🎁 5 ETB' },
   { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap, badge: '⚡' },
   { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
 ];
@@ -324,7 +325,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         {/* =========================================================================
             RIGHT MAIN DASHBOARD CONTENT AREA
            ========================================================================= */}
-        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-w-0 overflow-y-auto pb-24 lg:pb-0">
           {children}
         </div>
 
@@ -468,6 +469,79 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             </div>
           </div>
         )}
+
+
+        {/* =========================================================================
+            SIMPLIFIED 4-TAB NATIVE MOBILE BOTTOM BAR
+            (1. Exams | 2. Quizzes & Win 1K | 3. Library | 4. Wallet & Withdraw)
+           ========================================================================= */}
+        <nav
+          className="lg:hidden fixed bottom-0 left-0 right-0 z-40 bg-[#083D28]/95 backdrop-blur-lg border-t border-emerald-900/60 px-2 py-1.5 flex items-center justify-around shadow-2xl"
+          aria-label="Mobile Navigation"
+        >
+          {/* Tab 1: Exams */}
+          <Link
+            href="/dashboard/catalog"
+            className={cn(
+              'flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer',
+              pathname.includes('/catalog')
+                ? 'text-gold font-black scale-105'
+                : 'text-white/70 hover:text-white'
+            )}
+          >
+            <FileText size={18} className={pathname.includes('/catalog') ? 'stroke-[2.5]' : ''} />
+            <span className="text-[10px] mt-0.5 tracking-tight font-medium">Exams</span>
+          </Link>
+
+          {/* Tab 2: Quizzes & 1,000 ETB Prizes */}
+          <Link
+            href="/dashboard/competition"
+            className={cn(
+              'flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all relative cursor-pointer',
+              pathname.includes('/competition')
+                ? 'text-gold font-black scale-105'
+                : 'text-white/70 hover:text-white'
+            )}
+          >
+            <div className="relative">
+              <Trophy size={18} className={pathname.includes('/competition') ? 'stroke-[2.5]' : ''} />
+              <span className="absolute -top-1 -right-2 px-1 text-[8px] font-black bg-gold text-[#12202B] rounded-full">
+                1K
+              </span>
+            </div>
+            <span className="text-[10px] mt-0.5 tracking-tight font-medium">Win 1,000</span>
+          </Link>
+
+          {/* Tab 3: My Library */}
+          <Link
+            href="/dashboard/library"
+            className={cn(
+              'flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer',
+              pathname.includes('/library')
+                ? 'text-gold font-black scale-105'
+                : 'text-white/70 hover:text-white'
+            )}
+          >
+            <Library size={18} className={pathname.includes('/library') ? 'stroke-[2.5]' : ''} />
+            <span className="text-[10px] mt-0.5 tracking-tight font-medium">My Library</span>
+          </Link>
+
+          {/* Tab 4: Wallet & Withdraw */}
+          <Link
+            href="/payment?tab=withdraw"
+            className={cn(
+              'flex flex-col items-center justify-center flex-1 py-1 rounded-xl transition-all cursor-pointer',
+              pathname.includes('/payment') || pathname.includes('/withdraw')
+                ? 'text-gold font-black scale-105'
+                : 'text-white/70 hover:text-white'
+            )}
+          >
+            <Wallet size={18} className={pathname.includes('/payment') ? 'stroke-[2.5]' : ''} />
+            <span className="text-[10px] mt-0.5 tracking-tight font-bold">
+              {walletBalance} ETB
+            </span>
+          </Link>
+        </nav>
 
       </div>
     </AuthGuard>

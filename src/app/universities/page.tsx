@@ -9,8 +9,24 @@ import { UNIVERSITIES, EXAMS } from '@/lib/seed-data';
 export default function UniversitiesPage() {
   const { t } = useLanguage();
   const [search, setSearch] = React.useState('');
+  const [customExams, setCustomExams] = React.useState<any[]>([]);
 
-  const filtered = UNIVERSITIES.filter(u =>
+  React.useEffect(() => {
+    try {
+      const custom = JSON.parse(localStorage.getItem('tibeb_custom_exams') || '[]');
+      setCustomExams(custom);
+    } catch {}
+  }, []);
+
+  const allExams = React.useMemo(() => [...customExams, ...EXAMS], [customExams]);
+
+  // HIDE EMPTY: Only show universities that have uploaded exams
+  const activeUnis = React.useMemo(() => {
+    const ids = new Set(allExams.map(e => e.university_id?.toLowerCase()).filter(Boolean));
+    return UNIVERSITIES.filter(u => ids.has(u.id.toLowerCase()));
+  }, [allExams]);
+
+  const filtered = activeUnis.filter(u =>
     u.name.toLowerCase().includes(search.toLowerCase()) ||
     u.short.toLowerCase().includes(search.toLowerCase()) ||
     u.location.toLowerCase().includes(search.toLowerCase())

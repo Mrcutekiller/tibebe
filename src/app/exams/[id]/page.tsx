@@ -16,6 +16,8 @@ import Button from '@/components/ui/Button';
 import { EXAMS, Question, type Exam } from '@/lib/seed-data';
 import { generateWatermarkedExamPDF } from '@/lib/pdf-watermark';
 import toast from 'react-hot-toast';
+import { cn } from '@/lib/utils';
+import { triggerReferralPurchaseReward } from '@/lib/referral-store';
 
 interface QuizAttemptRecord {
   attempts: number;
@@ -51,6 +53,8 @@ export default function ExamDetailPage() {
   // Question & Solution Viewer State
   const [showAllSolutions, setShowAllSolutions] = useState(true);
   const [revealedSolutions, setRevealedSolutions] = useState<Record<string, boolean>>({});
+  const [isOfflineSaved, setIsOfflineSaved] = useState(false);
+  const [isDormOfflineActive, setIsDormOfflineActive] = useState(false);
 
   // Embedded Quiz Engine State
   const [quizActive, setQuizActive] = useState(false);
@@ -80,6 +84,61 @@ export default function ExamDetailPage() {
   }, [examId]);
 
   const exam = (customExam || EXAMS.find(e => e.id === examId) || EXAMS[0]) as Exam;
+
+  // Monitor dorm offline connectivity
+  useEffect(() => {
+    const handleStatus = () => setIsDormOfflineActive(!navigator.onLine);
+    window.addEventListener('online', handleStatus);
+    window.addEventListener('offline', handleStatus);
+    setIsDormOfflineActive(!navigator.onLine);
+    return () => {
+      window.removeEventListener('online', handleStatus);
+      window.removeEventListener('offline', handleStatus);
+    };
+  }, []);
+
+  // Check if saved offline
+  useEffect(() => {
+    if (exam?.id && typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(`tibeb_offline_exam_${exam.id}`);
+        setIsOfflineSaved(!!stored);
+      } catch {}
+    }
+  }, [exam?.id]);
+
+  const handleToggleOfflineSave = () => {
+    if (!exam) return;
+    if (!isUnlocked) {
+      toast.error('Please unlock this exam first to enable dorm offline study.');
+      return;
+    }
+    if (isOfflineSaved) {
+      localStorage.removeItem(`tibeb_offline_exam_${exam.id}`);
+      setIsOfflineSaved(false);
+      toast.success('Removed from Dorm Offline Storage.');
+    } else {
+      try {
+        const offlineData = {
+          id: exam.id,
+          title: exam.title,
+          code: exam.code,
+          university: exam.university,
+          department: exam.department,
+          images: examImages,
+          questions: examQuestions,
+          savedAt: new Date().toISOString(),
+          licenseUser: user?.name || 'Verified Student',
+          licensePhone: user?.phone || '',
+        };
+        localStorage.setItem(`tibeb_offline_exam_${exam.id}`, JSON.stringify(offlineData));
+        setIsOfflineSaved(true);
+        toast.success('Saved for Dorm Offline Study! Accessible with zero data.', { icon: '⚡', duration: 4500 });
+      } catch {
+        toast.error('Offline storage quota exceeded.');
+      }
+    }
+  };
 
   // Load quiz history and check purchase/unlock status & reviews from localStorage
   useEffect(() => {
@@ -130,6 +189,9 @@ export default function ExamDetailPage() {
     const success = payWithWallet(20, [exam.id]);
     if (success) {
       setIsUnlocked(true);
+      if (user?.id) {
+        triggerReferralPurchaseReward(user.id);
+      }
       toast.success('Exam paper unlocked successfully! Scanned photos and solutions are now unblurred.');
     } else {
       toast.error('Payment with wallet failed. Please try again.');
@@ -480,6 +542,21 @@ export default function ExamDetailPage() {
 
                 {/* Page Navigation Indicator */}
                 <div className="flex items-center gap-2">
+                  {isUnlocked && (
+                    <button
+                      onClick={handleToggleOfflineSave}
+                      className={cn(
+                        'px-3 py-1 rounded-full text-xs font-bold transition-all flex items-center gap-1.5 border shadow-xs cursor-pointer',
+                        isOfflineSaved
+                          ? 'bg-emerald-100 text-[#0B5D3B] border-emerald-300'
+                          : 'bg-white hover:bg-gray-50 text-gray-600 border-gray-200'
+                      )}
+                      title="Save full paper and solutions locally in browser for offline studying in dorms with zero internet"
+                    >
+                      <Download size={13} className={isOfflineSaved ? 'text-emerald-700' : 'text-gray-400'} />
+                      <span>{isOfflineSaved ? 'Dorm Offline Saved' : 'Save for Offline'}</span>
+                    </button>
+                  )}
                   <span className="text-xs font-semibold text-gray-700 bg-emerald-50 border border-emerald-200 px-3 py-1 rounded-full">
                     Page {currentPageNumber} of {examImages.length}
                   </span>
@@ -517,6 +594,25 @@ export default function ExamDetailPage() {
                     if (isUnlocked) setFullscreenImage(examImages[currentImageIndex]);
                   }}
                 />
+
+                {/* PROMINENT SECURITY WATERMARK OVERLAY (Prevents unauthorized re-distribution) */}
+                {isUnlocked && (
+                  <div
+                    className="absolute inset-0 pointer-events-none select-none z-10 overflow-hidden flex flex-wrap items-center justify-around opacity-[0.14] sm:opacity-[0.17] rotate-[-22deg] scale-125"
+                    aria-hidden="true"
+                  >
+                    {Array.from({ length: 16 }).map((_, wIdx) => (
+                      <div key={wIdx} className="p-6 text-center select-none">
+                        <p className="font-mono font-black text-xs sm:text-sm text-amber-200 uppercase tracking-widest whitespace-nowrap drop-shadow-md">
+                          LICENSED TO: {user?.name || 'STUDENT'} • {user?.phone || 'VERIFIED USER'}
+                        </p>
+                        <p className="font-mono text-[9px] text-white uppercase tracking-wider whitespace-nowrap">
+                          TIBEB HIGHER ED PLATFORM • OFFICIAL EXAM COPY • DO NOT DISTRIBUTE
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 {/* Locked Blur Overlay */}
                 {!isUnlocked && (

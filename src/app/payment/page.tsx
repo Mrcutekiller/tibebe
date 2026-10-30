@@ -7,7 +7,7 @@ import {
   Wallet, ArrowLeft, CheckCircle2, XCircle, UploadCloud,
   Copy, Check, ShieldCheck, Sparkles, RefreshCw, QrCode,
   AlertTriangle, ArrowRight, ExternalLink, FileCheck, Layers,
-  ChevronRight, Smartphone, Building, BookOpen, Eye, X
+  ChevronRight, Smartphone, Building, BookOpen, Eye, X, Gift
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import {
@@ -910,6 +910,22 @@ function PaymentContent() {
                   {walletBalance >= MIN_WITHDRAWAL_AMOUNT ? 'Eligible for Payout' : `Need ${MIN_WITHDRAWAL_AMOUNT - walletBalance} ETB Min`}
                 </span>
               </div>
+            </div>
+
+            {/* Referral Wallet Link */}
+            <div className="p-3.5 rounded-2xl bg-amber-50 border border-amber-200/80 flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Gift size={16} className="text-amber-800" />
+                <span className="text-xs font-bold text-amber-900">
+                  Invite classmates to earn 5 ETB per referral!
+                </span>
+              </div>
+              <Link
+                href="/dashboard/referrals"
+                className="text-xs font-black text-[#0B5D3B] hover:underline flex items-center gap-1"
+              >
+                Referral Wallet →
+              </Link>
             </div>
 
             {/* Withdrawal Form */}
