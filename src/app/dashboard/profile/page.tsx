@@ -5,7 +5,7 @@ import Link from 'next/link';
 import {
   User, Phone, GraduationCap, BookOpen, Save,
   ShieldCheck, Globe, LogOut, CheckCircle2, ChevronRight,
-  Camera, Upload, Mail, Check, Sparkles
+  Camera, Upload, Mail, Check, Sparkles, Wallet, Plus, ArrowUpRight
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { UNIVERSITIES } from '@/lib/seed-data';
@@ -23,7 +23,7 @@ const PRESET_AVATARS = [
 ];
 
 function ProfileContent() {
-  const { user, updateUserProfile, signOut } = useAuth();
+  const { user, updateUserProfile, signOut, walletBalance } = useAuth();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [name, setName] = useState(user?.name || 'Biruk Tadesse');
@@ -113,6 +113,40 @@ function ProfileContent() {
           <p className="text-xs md:text-sm text-gray-500">
             View and manage your personal identity, university department, and phone number.
           </p>
+        </div>
+
+        {/* Wallet Balance & Withdraw Actions */}
+        <div className="bg-white rounded-3xl p-5 sm:p-6 shadow-sm border border-gray-100 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3.5">
+            <div className="w-12 h-12 rounded-2xl bg-[#0B5D3B]/10 text-[#0B5D3B] flex items-center justify-center shrink-0">
+              <Wallet size={24} />
+            </div>
+            <div>
+              <span className="text-[10px] font-black uppercase tracking-wider text-gray-400">Student Wallet Balance</span>
+              <div className="flex items-baseline gap-1.5">
+                <span className="text-2xl font-black text-ink">{walletBalance}</span>
+                <span className="text-xs font-bold text-gray-500">ETB</span>
+              </div>
+              <p className="text-[11px] text-gray-500">Min Deposit: 20 ETB • Min Withdrawal: 20 ETB</p>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-2">
+            <Link
+              href="/payment?tab=deposit"
+              className="px-4 py-2.5 rounded-xl bg-gold hover:bg-amber-400 text-ink text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <Plus size={14} className="stroke-[3]" />
+              <span>Deposit Funds</span>
+            </Link>
+            <Link
+              href="/payment?tab=withdraw"
+              className="px-4 py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-bold transition-all shadow-sm flex items-center gap-1.5 cursor-pointer"
+            >
+              <ArrowUpRight size={14} />
+              <span>Withdraw Balance</span>
+            </Link>
+          </div>
         </div>
 
         {/* Profile Card */}

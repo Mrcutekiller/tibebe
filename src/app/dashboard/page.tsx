@@ -67,6 +67,7 @@ const SIDEBAR_ITEMS = [
   { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles },
   { href: '/dashboard/library', label: 'My Library', icon: Library },
   { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy },
+  { href: '/payment?tab=withdraw', label: 'Deposit & Withdraw', icon: Wallet },
   { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap },
   { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
   { href: '/dashboard/profile', label: 'Settings', icon: Settings },
@@ -215,11 +216,21 @@ function DashboardContent() {
                 <button
                   onClick={() => setShowTopUp(true)}
                   className="flex items-center gap-2 px-4 py-2 rounded-2xl bg-white border border-stone-200 shadow-sm text-xs font-bold text-ink hover:border-green transition-all cursor-pointer"
+                  title="Deposit Funds (Min 20 ETB)"
                 >
                   <Wallet size={15} className="text-emerald-700" />
                   <span>{walletBalance} ETB</span>
                   <span className="p-0.5 rounded-full bg-emerald-600 text-white"><Plus size={10} /></span>
                 </button>
+
+                <Link
+                  href="/payment?tab=withdraw"
+                  className="flex items-center gap-1.5 px-3.5 py-2 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white shadow-sm text-xs font-bold transition-all cursor-pointer"
+                  title="Withdraw Funds (Min 20 ETB)"
+                >
+                  <ArrowUpRight size={15} />
+                  <span>Withdraw</span>
+                </Link>
 
                 <button
                   onClick={() => setIsCartOpen(true)}
@@ -233,6 +244,50 @@ function DashboardContent() {
                     </span>
                   )}
                 </button>
+              </div>
+            </div>
+
+            {/* Student Wallet, Deposit & Withdrawal Card */}
+            <div className="mb-6 p-5 sm:p-6 rounded-3xl bg-gradient-to-r from-emerald-950 via-[#0B5D3B] to-[#12202B] text-white shadow-lg flex flex-col md:flex-row md:items-center justify-between gap-4">
+              <div className="flex items-center gap-4">
+                <div className="w-12 h-12 rounded-2xl bg-gold/20 text-gold border border-gold/40 flex items-center justify-center shrink-0">
+                  <Wallet size={24} />
+                </div>
+                <div>
+                  <div className="flex items-center gap-2">
+                    <span className="text-[11px] font-black uppercase tracking-wider text-emerald-200">Tibeb Student Balance</span>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-gold text-[#12202B]">
+                      Min Deposit / Withdraw: 20 ETB
+                    </span>
+                  </div>
+                  <div className="flex items-baseline gap-2 mt-0.5">
+                    <span className="text-3xl sm:text-4xl font-black text-white">{walletBalance}</span>
+                    <span className="text-sm font-bold text-emerald-200">ETB</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2.5">
+                <button
+                  onClick={() => setShowTopUp(true)}
+                  className="px-4 py-2.5 rounded-xl bg-gold hover:bg-amber-400 text-ink text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <Plus size={14} className="stroke-[3]" />
+                  <span>Deposit Funds</span>
+                </button>
+                <Link
+                  href="/payment?tab=withdraw"
+                  className="px-4 py-2.5 rounded-xl bg-white/10 hover:bg-white/20 text-white border border-white/20 text-xs font-bold transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <ArrowUpRight size={14} />
+                  <span>Withdraw Balance</span>
+                </Link>
+                <Link
+                  href="/payment?tab=withdraw"
+                  className="px-3 py-2.5 rounded-xl bg-emerald-900/60 hover:bg-emerald-800 text-emerald-200 text-xs font-bold transition-all flex items-center gap-1 cursor-pointer"
+                >
+                  <span>Payout Proofs →</span>
+                </Link>
               </div>
             </div>
 

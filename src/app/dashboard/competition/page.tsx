@@ -667,7 +667,12 @@ export default function CompetitionLeaderboardPage() {
                     >
                       <div className="space-y-2">
                         <div className="flex items-center justify-between">
-                          <span className="font-mono text-xs font-bold text-gray-500">{quiz.courseCode}</span>
+                          <div className="flex items-center gap-1.5">
+                            <span className="font-mono text-xs font-bold text-gray-500">{quiz.courseCode}</span>
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                              5 ETB Fee
+                            </span>
+                          </div>
                           <span className={cn(
                             'px-2 py-0.5 rounded-full text-[10px] font-black uppercase',
                             quiz.difficulty === 'Hard' ? 'bg-red-100 text-red-700' : 'bg-emerald-100 text-emerald-800'
@@ -691,11 +696,11 @@ export default function CompetitionLeaderboardPage() {
                       </div>
 
                       <button
-                        onClick={() => handleStartQuiz(quiz)}
-                        className="mt-5 w-full py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
+                        onClick={() => handleRequestStartQuiz(quiz)}
+                        className="mt-5 w-full py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-bold transition-all flex items-center justify-center gap-1.5 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-[0.98]"
                       >
                         <Play size={13} />
-                        Start Challenge
+                        Enter Competition Test (5 ETB)
                       </button>
                     </div>
                   ))}

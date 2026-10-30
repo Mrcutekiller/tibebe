@@ -398,46 +398,79 @@ export function getLeaderboardData(currentStudent?: {
     } catch {}
   }
 
-  if (storedBoard.length === 0) {
-    storedBoard = [...INITIAL_LEADERBOARD_ENTRIES];
-    if (typeof window !== 'undefined') {
-      try {
-        localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(storedBoard));
-      } catch {}
-    }
+  // Filter out any mock/fake demo accounts from earlier versions
+  const FAKE_DEMO_NAMES = [
+    'Abebe Bikila', 'Selamawit D.', 'Dawit Haile', 'Hana T.', 'Yohannes K.',
+    'Bethelhem M.', 'Ephrem G.', 'Rahel B.', 'Natnael W.', 'Tsion A.',
+    'Kidus F.', 'Marta T.', 'Samuel D.', 'Hiwot Z.', 'Biniyam E.',
+    'Lydia G.', 'Surafel M.', 'Frehiwot N.', 'Robel S.', 'Senait K.'
+  ];
+  storedBoard = storedBoard.filter(e => !FAKE_DEMO_NAMES.includes(e.name));
+
+  // 1. Ingest all real registered student accounts from localStorage ('tibeb_registered_users')
+  if (typeof window !== 'undefined') {
+    try {
+      const rawUsers = localStorage.getItem('tibeb_registered_users');
+      if (rawUsers) {
+        const regList: any[] = JSON.parse(rawUsers);
+        regList.forEach((u) => {
+          if (!u || !u.name) return;
+          const pts = getStudentPoints(u.id) || u.competition_points || 0;
+          const existingIdx = storedBoard.findIndex(
+            (b) => b.id === u.id || b.name.toLowerCase() === u.name.toLowerCase()
+          );
+          if (existingIdx >= 0) {
+            storedBoard[existingIdx].points = Math.max(storedBoard[existingIdx].points, pts);
+            if (u.university_id) storedBoard[existingIdx].university = u.university_id.toUpperCase();
+            if (u.department) storedBoard[existingIdx].department = u.department;
+            if (u.avatar_url) storedBoard[existingIdx].avatar = u.avatar_url;
+          } else {
+            storedBoard.push({
+              id: u.id || `usr-${Math.random().toString(36).substring(2, 7)}`,
+              name: u.name,
+              university: u.university_id ? u.university_id.toUpperCase() : 'AAU',
+              department: u.department || 'Enrolled Student',
+              points: pts,
+              avatar: u.avatar_url,
+              quizzesCompleted: pts > 0 ? Math.floor(pts / 20) : 0,
+              testsPurchased: 0,
+              hasTelegramPremium: false,
+              lastActive: 'Active Student',
+            });
+          }
+        });
+      }
+    } catch {}
   }
 
+  // 2. Ingest active student
   const studentId = currentStudent?.id || 'current-student';
   const studentName = currentStudent?.name || 'You (Tibeb Student)';
   const userPoints = getStudentPoints(studentId);
 
-  // Filter out any 0-point entries unless active student has earned points
-  if (userPoints > 0) {
-    let existingIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
+  if (currentStudent && currentStudent.name) {
+    const existingIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
     if (existingIndex >= 0) {
       storedBoard[existingIndex].points = Math.max(storedBoard[existingIndex].points, userPoints);
       storedBoard[existingIndex].name = studentName;
-      if (currentStudent?.university) storedBoard[existingIndex].university = currentStudent.university;
-      if (currentStudent?.department) storedBoard[existingIndex].department = currentStudent.department;
-      if (currentStudent?.avatar_url) storedBoard[existingIndex].avatar = currentStudent.avatar_url;
+      if (currentStudent.university) storedBoard[existingIndex].university = currentStudent.university;
+      if (currentStudent.department) storedBoard[existingIndex].department = currentStudent.department;
+      if (currentStudent.avatar_url) storedBoard[existingIndex].avatar = currentStudent.avatar_url;
     } else {
       storedBoard.push({
         id: studentId,
         name: studentName,
-        university: currentStudent?.university || 'AAU',
-        department: currentStudent?.department || 'Engineering',
+        university: currentStudent.university || 'AAU',
+        department: currentStudent.department || 'Enrolled Student',
         points: userPoints,
-        avatar: currentStudent?.avatar_url,
-        quizzesCompleted: 1,
+        avatar: currentStudent.avatar_url,
+        quizzesCompleted: userPoints > 0 ? Math.floor(userPoints / 20) : 0,
         testsPurchased: 0,
         hasTelegramPremium: false,
         lastActive: 'Just now',
       });
     }
   }
-
-  // Keep only real competitors with points
-  storedBoard = storedBoard.filter(e => e.points > 0);
 
   // Sort strictly descending by total points
   storedBoard.sort((a, b) => b.points - a.points);
@@ -446,6 +479,13 @@ export function getLeaderboardData(currentStudent?: {
   storedBoard.forEach((entry, idx) => {
     entry.rank = idx + 1;
   });
+
+  // Save the synchronized real board
+  if (typeof window !== 'undefined') {
+    try {
+      localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify(storedBoard));
+    } catch {}
+  }
 
   const userRankIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
   const userRank = userRankIndex >= 0 ? userRankIndex + 1 : (storedBoard.length + 1);

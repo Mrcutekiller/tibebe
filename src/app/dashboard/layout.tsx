@@ -6,7 +6,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import {
   LayoutDashboard, Sparkles, FileText, Library, ShoppingBag,
   Award, Zap, Settings, HelpCircle, LogOut, Wallet, Plus,
-  Menu, X, Shield, Globe, ArrowRight, ChevronRight, UserCheck, Trophy, Smartphone
+  Menu, X, Shield, Globe, ArrowRight, ArrowUpRight, ChevronRight, UserCheck, Trophy, Smartphone
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
 import { useLanguage } from '@/context/LanguageContext';
@@ -20,6 +20,7 @@ const MAIN_NAV_ITEMS = [
   { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles, badge: 'AI' },
   { href: '/dashboard/library', label: 'My Library', icon: Library },
   { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy, badge: '🏆 1K' },
+  { href: '/payment?tab=withdraw', label: 'Deposit & Withdraw', icon: Wallet, badge: 'Min 20' },
   { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap, badge: '⚡' },
   { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
 ];
@@ -78,6 +79,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           <div className="flex items-center gap-2">
+            <Link
+              href="/payment?tab=withdraw"
+              className="px-2.5 py-1.5 rounded-full bg-emerald-800/80 hover:bg-emerald-700 text-white text-xs font-bold border border-emerald-700 transition-all"
+            >
+              Withdraw
+            </Link>
             <button
               onClick={() => setShowDepositModal(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-gold/20 text-gold border border-gold/40 text-xs font-bold hover:bg-gold/30 transition-all cursor-pointer"
@@ -177,22 +184,32 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               </div>
             </Link>
 
-            {/* Wallet Balance Card with Deposit Action */}
-            <div className="mt-3.5 p-3 rounded-2xl bg-emerald-950/60 border border-emerald-800/80 flex items-center justify-between">
-              <div>
+            {/* Wallet Balance Card with Deposit & Withdraw Action */}
+            <div className="mt-3.5 p-3 rounded-2xl bg-emerald-950/60 border border-emerald-800/80">
+              <div className="flex items-center justify-between mb-2">
                 <span className="text-[10px] uppercase tracking-wider text-emerald-300/80 font-bold block">Wallet Balance</span>
                 <span className="text-base font-black text-gold tracking-tight">{walletBalance} <span className="text-xs font-bold text-white">ETB</span></span>
               </div>
-              <button
-                onClick={() => {
-                  setShowDepositModal(true);
-                  setMobileSidebarOpen(false);
-                }}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-xl bg-gold hover:bg-amber-400 text-ink text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-105 active:scale-95"
-              >
-                <Plus size={13} className="stroke-[3]" />
-                <span>Deposit</span>
-              </button>
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={() => {
+                    setShowDepositModal(true);
+                    setMobileSidebarOpen(false);
+                  }}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-gold hover:bg-amber-400 text-ink text-xs font-bold transition-all shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <Plus size={12} className="stroke-[3]" />
+                  <span>Deposit</span>
+                </button>
+                <Link
+                  href="/payment?tab=withdraw"
+                  onClick={() => setMobileSidebarOpen(false)}
+                  className="flex items-center justify-center gap-1 py-1.5 px-2 rounded-xl bg-emerald-800/90 hover:bg-emerald-700 text-white text-xs font-bold transition-all border border-emerald-600/50 shadow-sm cursor-pointer hover:scale-[1.02] active:scale-95"
+                >
+                  <ArrowUpRight size={12} />
+                  <span>Withdraw</span>
+                </Link>
+              </div>
             </div>
           </div>
 
@@ -209,6 +226,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
                     ? pathname === item.href
                     : pathname === item.href ||
                       (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
+                      (item.href.includes('payment') && pathname === '/payment') ||
                       (item.href === '/dashboard/smart-notes' && (pathname === '/smart-notes' || pathname.startsWith('/smart-notes'))) ||
                       (item.href === '/dashboard/catalog' && (pathname === '/catalog' || pathname.startsWith('/catalog'))) ||
                       (item.href === '/dashboard/telegram-premium' && (pathname === '/telegram-premium' || pathname.startsWith('/telegram-premium')));
