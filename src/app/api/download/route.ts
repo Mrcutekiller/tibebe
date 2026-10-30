@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
       const proto = req.headers.get('x-forwarded-proto') || (host.includes('localhost') ? 'http' : 'https');
       const origin = `${proto}://${host}`;
       let content = fileBuffer.toString('utf-8');
-      content = content.replace(/<string>https:\/\/tibebexams\.com<\/string>/g, `<string>${origin}</string>`);
+      content = content.replace(/<string>https?:\/\/[^<]+<\/string>/g, `<string>${origin}</string>`);
       fileBuffer = Buffer.from(content, 'utf-8');
     } catch (e) {
       // Fallback to static fileBuffer

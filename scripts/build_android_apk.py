@@ -129,22 +129,23 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
-import android.net.ConnectivityManager;
-import android.net.NetworkInfo;
 import android.net.Uri;
+import android.net.http.SslError;
 import android.os.Bundle;
 import android.view.KeyEvent;
 import android.view.View;
+import android.webkit.JavascriptInterface;
+import android.webkit.SslErrorHandler;
 import android.webkit.ValueCallback;
 import android.webkit.WebChromeClient;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
 import android.webkit.WebViewClient;
 import android.widget.FrameLayout;
 import android.widget.ProgressBar;
-import android.widget.TextView;
 import android.widget.Toast;
 
 public class MainActivity extends Activity {
@@ -154,9 +155,31 @@ public class MainActivity extends Activity {
     private ValueCallback<Uri[]> filePathCallback;
     private final static int FILE_CHOOSER_RESULT_CODE = 1001;
 
-    // Production URL (with fallback offline support)
-    private static final String DEFAULT_URL = "https://tibebexams.com";
+    // Default connection endpoints
+    private static final String DEFAULT_URL = "http://192.168.100.25:3000";
+    private static final String CLOUD_URL = "https://tibeb.vercel.app";
     private static final String PREF_KEY_URL = "tibeb_server_url";
+
+    public class NativeBridge {
+        @JavascriptInterface
+        public void setServerUrl(final String url) {
+            if (url != null && !url.trim().isEmpty()) {
+                String clean = url.trim();
+                if (!clean.startsWith("http://") && !clean.startsWith("https://")) {
+                    clean = "http://" + clean;
+                }
+                SharedPreferences prefs = getPreferences(Context.MODE_PRIVATE);
+                prefs.edit().putString(PREF_KEY_URL, clean).apply();
+                final String target = clean;
+                runOnUiThread(new Runnable() {
+                    @Override
+                    public void run() {
+                        webView.loadUrl(target);
+                    }
+                });
+            }
+        }
+    }
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -166,18 +189,24 @@ public class MainActivity extends Activity {
         rootLayout.setBackgroundColor(0xFF083D28);
 
         webView = new WebView(this);
+        webView.setBackgroundColor(0xFF083D28);
+
         WebSettings ws = webView.getSettings();
         ws.setJavaScriptEnabled(true);
         ws.setDomStorageEnabled(true);
         ws.setDatabaseEnabled(true);
         ws.setAllowFileAccess(true);
+        ws.setAllowContentAccess(true);
         ws.setUseWideViewPort(true);
         ws.setLoadWithOverviewMode(true);
         ws.setSupportZoom(true);
         ws.setBuiltInZoomControls(false);
         ws.setDisplayZoomControls(false);
+        ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
         ws.setUserAgentString(ws.getUserAgentString() + " TibebMobileApp/1.2.0 Android");
+
+        webView.addJavascriptInterface(new NativeBridge(), "TibebNative");
 
         progressBar = new ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal);
         progressBar.setMax(100);
@@ -242,15 +271,20 @@ public class MainActivity extends Activity {
             }
 
             @Override
+            public void onReceivedSslError(WebView view, SslErrorHandler handler, SslError error) {
+                handler.proceed(); // Allow local IP network & self-signed certs
+            }
+
+            @Override
             public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
                 if (request.isForMainFrame()) {
-                    showOfflineError(view);
+                    showConnectionPortal(view, request.getUrl().toString());
                 }
             }
 
             @Override
             public void onReceivedError(WebView view, int errorCode, String description, String failingUrl) {
-                showOfflineError(view);
+                showConnectionPortal(view, failingUrl);
             }
         });
 
@@ -266,18 +300,40 @@ public class MainActivity extends Activity {
         webView.loadUrl(targetUrl);
     }
 
-    private void showOfflineError(WebView view) {
-        String offlineHtml = "<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>" +
-            "<style>body{background:#083D28;color:#FFFFFF;font-family:sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;height:90vh;margin:0;padding:20px;text-align:center;}" +
-            "h2{color:#FFD700;margin-bottom:10px;font-size:24px;}" +
-            "p{color:#A7F3D0;font-size:14px;max-width:320px;line-height:1.5;margin-bottom:24px;}" +
-            ".btn{background:#FFD700;color:#0B2E1D;font-weight:bold;padding:14px 28px;border-radius:12px;text-decoration:none;font-size:15px;display:inline-block;cursor:pointer;border:none;box-shadow:0 4px 12px rgba(0,0,0,0.3);}" +
-            "</style></head><body>" +
-            "<h2>Tibeb Higher Education</h2>" +
-            "<p>Unable to connect to the Tibeb study network. Please check your internet connection or mobile data and tap retry.</p>" +
-            "<button class='btn' onclick='location.reload()'>Retry Connection</button>" +
-            "</body></html>";
-        view.loadDataWithBaseURL(null, offlineHtml, "text/html", "utf-8", null);
+        private void showConnectionPortal(WebView view, String attemptedUrl) {
+        String safeUrl = (attemptedUrl != null) ? attemptedUrl.replace("'", "") : DEFAULT_URL;
+        StringBuilder sb = new StringBuilder();
+        sb.append("<!DOCTYPE html><html><head><meta name='viewport' content='width=device-width, initial-scale=1.0'>");
+        sb.append("<style>");
+        sb.append("body{background:#083D28;color:#FFFFFF;font-family:sans-serif;margin:0;padding:24px;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:92vh;box-sizing:border-box;text-align:center;}");
+        sb.append(".logo{width:68px;height:68px;border-radius:20px;background:#0B5D3B;color:#FFD700;font-size:32px;font-weight:bold;line-height:68px;margin:0 auto 16px auto;box-shadow:0 8px 20px rgba(0,0,0,0.4);border:2px solid #FFD700;}");
+        sb.append("h1{color:#FFFFFF;font-size:22px;font-weight:bold;margin:0 0 6px 0;}");
+        sb.append("p{color:#A7F3D0;font-size:13px;line-height:1.5;margin:0 0 20px 0;}");
+        sb.append(".card{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:20px;padding:20px;width:100%;max-width:340px;box-sizing:border-box;margin-bottom:16px;}");
+        sb.append(".btn{width:100%;background:#FFD700;color:#083D28;font-weight:bold;font-size:14px;padding:14px 18px;border-radius:14px;border:none;cursor:pointer;margin-bottom:10px;box-sizing:border-box;display:block;}");
+        sb.append(".btn-alt{background:transparent;color:#A7F3D0;border:1px solid #A7F3D0;font-size:12px;font-weight:bold;padding:10px 14px;}");
+        sb.append("input{width:100%;background:rgba(0,0,0,0.3);border:1px solid #FFD700;color:#FFFFFF;font-size:13px;padding:12px 14px;border-radius:12px;box-sizing:border-box;margin-bottom:10px;text-align:center;font-family:monospace;}");
+        sb.append(".status{font-size:11px;color:#FCA5A5;margin-bottom:12px;word-break:break-all;}");
+        sb.append("</style></head><body>");
+        sb.append("<div class='logo'>T.</div>");
+        sb.append("<h1>Tibeb Mobile</h1>");
+        sb.append("<p>Higher Education Study Platform</p>");
+        sb.append("<div class='card'>");
+        sb.append("<div class='status'>Offline or Server Unreachable:<br><strong>").append(safeUrl).append("</strong></div>");
+        sb.append("<button class='btn' id='btnWifi'>Connect to Wi-Fi (192.168.100.25)</button>");
+        sb.append("<button class='btn btn-alt' id='btnCloud'>Connect to Cloud (tibeb.vercel.app)</button>");
+        sb.append("<div style='margin:14px 0 6px 0;font-size:11px;color:#A7F3D0;font-weight:bold;'>CUSTOM SERVER URL:</div>");
+        sb.append("<input id='cUrl' type='text' value='").append(safeUrl).append("'>");
+        sb.append("<button class='btn btn-alt' id='btnCustom'>Save and Connect</button>");
+        sb.append("</div>");
+        sb.append("<script>");
+        sb.append("function goUrl(u){ if(window.TibebNative){ window.TibebNative.setServerUrl(u); } else { location.href=u; } }");
+        sb.append("document.getElementById('btnWifi').onclick = function() { goUrl('").append(DEFAULT_URL).append("'); };");
+        sb.append("document.getElementById('btnCloud').onclick = function() { goUrl('").append(CLOUD_URL).append("'); };");
+        sb.append("document.getElementById('btnCustom').onclick = function() { var v = document.getElementById('cUrl').value; goUrl(v); };");
+        sb.append("</script>");
+        sb.append("</body></html>");
+        view.loadDataWithBaseURL(null, sb.toString(), "text/html", "utf-8", null);
     }
 
     @Override

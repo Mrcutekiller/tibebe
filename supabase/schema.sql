@@ -431,3 +431,4 @@ on conflict (email) do update set role = 'owner', phone = '0922846851';
 
 -- Confirm completion
 select count(*) as total_users, 'Schema initialized successfully. Zero mock records.' as status from public.users;
+

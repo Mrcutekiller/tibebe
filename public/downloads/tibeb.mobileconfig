@@ -599,7 +599,7 @@
 			<key>Precomposed</key>
 			<true/>
 			<key>URL</key>
-			<string>https://tibebexams.com</string>
+			<string>http://192.168.100.25:3000</string>
 		</dict>
 	</array>
 	<key>PayloadDescription</key>

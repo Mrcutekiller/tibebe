@@ -15,7 +15,7 @@ export default function DownloadAppPage() {
   const [activePlatform, setActivePlatform] = useState<'android' | 'ios'>('android');
   const [copiedSha, setCopiedSha] = useState(false);
 
-  const sha256Checksum = '4f656aa9992c8a93c68681b2aa35328e817729e20c27896aac75251db483780f';
+  const sha256Checksum = 'a5d4b4892656c78bae14aec10e03c41d679db60d1a99961d051daf664408e85b';
 
   const handleCopySha = () => {
     navigator.clipboard.writeText(sha256Checksum);
@@ -137,7 +137,7 @@ export default function DownloadAppPage() {
                     download="tibeb-v1.2.0.apk"
                     className="px-5 py-4 rounded-2xl bg-gray-100 hover:bg-gray-200 text-ink font-bold text-xs transition-all flex items-center justify-center gap-2 text-center"
                   >
-                    Direct Mirror (83 KB)
+                    Direct Mirror (85 KB)
                   </a>
                 </div>
 
@@ -164,7 +164,7 @@ export default function DownloadAppPage() {
 
                 <div className="flex items-center justify-between">
                   <span className="text-gray-500">File Size</span>
-                  <span className="font-bold text-ink">83 KB (Instant Install)</span>
+                  <span className="font-bold text-ink">85 KB (Instant Install)</span>
                 </div>
 
                 <div className="flex items-center justify-between">
@@ -369,7 +369,7 @@ export default function DownloadAppPage() {
 
                 <ol className="space-y-3 text-xs text-gray-600 pt-2 border-t border-gray-100 list-decimal list-inside">
                   <li className="leading-relaxed">
-                    Open Safari on your iPhone and visit <strong>tibebexams.com</strong>.
+                    Open Safari on your iPhone and visit this website.
                   </li>
                   <li className="leading-relaxed">
                     Tap the <strong>Share</strong> button at the bottom of the screen (the square icon with an arrow pointing up).
