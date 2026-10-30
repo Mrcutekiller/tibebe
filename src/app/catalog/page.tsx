@@ -2,21 +2,19 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Link from 'next/link';
-import { Search, Filter, X, ChevronDown, SlidersHorizontal, FileText, CheckCircle, Lock, Zap, ArrowRight } from 'lucide-react';
+import { Search, Filter, X, ChevronDown, SlidersHorizontal, FileText, CheckCircle, Lock, ArrowRight } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
 import { Chip } from '@/components/ui/Badge';
 import { SkeletonCard } from '@/components/ui/Card';
-import { EXAMS, UNIVERSITIES, TELEGRAM_PREMIUM_PLANS } from '@/lib/seed-data';
+import { EXAMS, UNIVERSITIES } from '@/lib/seed-data';
 
-type ContentType = 'exams' | 'telegram';
 type ExamType = 'all' | 'Final' | 'Mid' | 'Class Test' | 'Quiz';
 type SortBy = 'newest' | 'popular' | 'price_asc' | 'price_desc';
 
 export default function CatalogPage() {
   const { t } = useLanguage();
   const { user, loading: authLoading } = useAuth();
-  const [contentType, setContentType] = useState<ContentType>('exams');
   const [examType, setExamType] = useState<ExamType>('all');
   const [selectedUni, setSelectedUni] = useState<string>('all');
   const [selectedDept, setSelectedDept] = useState<string>('all');
@@ -121,10 +119,10 @@ export default function CatalogPage() {
       {/* Page header */}
       <div className="bg-ink text-white py-12 px-4">
         <div className="container-tibeb">
-          <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2 block">Tibeb Marketplace</span>
-          <h1 className="text-3xl font-black mb-2">University Tests & Telegram Premium</h1>
+          <span className="text-xs font-bold uppercase tracking-widest text-gold mb-2 block">Tibeb Exam Bank</span>
+          <h1 className="text-3xl font-black mb-2">Ethiopian University Exam Tests</h1>
           <p className="text-white/70 text-sm">
-            Authentic 20 ETB past exam papers with step-by-step verified answers, and instant Telegram Premium subscriptions.
+            Authentic 20 ETB past exam papers with step-by-step verified answers and marking criteria.
           </p>
         </div>
       </div>
@@ -135,52 +133,11 @@ export default function CatalogPage() {
           {/* ---- Sidebar (desktop) ---- */}
           <aside className="hidden lg:block w-64 flex-shrink-0 sticky top-20 self-start">
             <div className="bg-white rounded-3xl p-5 shadow-card border border-gray-100">
-              <h3 className="font-bold text-ink mb-4 text-sm uppercase tracking-wider">Select Category</h3>
+              <h3 className="font-bold text-ink mb-4 text-sm uppercase tracking-wider">Filter Exam Tests</h3>
 
-              {/* Content Type */}
-              <div className="mb-6">
-                <div className="space-y-1.5">
-                  <button
-                    onClick={() => setContentType('exams')}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      contentType === 'exams' ? 'bg-green text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <FileText size={15} />
-                      Exam Tests
-                    </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${
-                      contentType === 'exams' ? 'bg-white/20 text-white' : 'bg-emerald-100 text-emerald-800'
-                    }`}>
-                      20 ETB
-                    </span>
-                  </button>
-
-                  <button
-                    onClick={() => setContentType('telegram')}
-                    className={`w-full flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all cursor-pointer ${
-                      contentType === 'telegram' ? 'bg-green text-white shadow-sm' : 'text-gray-600 hover:bg-gray-50'
-                    }`}
-                  >
-                    <span className="flex items-center gap-2">
-                      <Zap size={15} className="text-gold fill-gold" />
-                      Telegram Premium
-                    </span>
-                    <span className={`text-[10px] px-1.5 py-0.5 rounded font-black ${
-                      contentType === 'telegram' ? 'bg-white/20 text-white' : 'bg-amber-100 text-amber-800'
-                    }`}>
-                      Instant ⚡
-                    </span>
-                  </button>
-                </div>
-              </div>
-
-              {/* University Filter (Only for exams) */}
-              {contentType === 'exams' && (
-                <>
-                  <div className="mb-5">
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('catalog.filter.university')}</p>
+              {/* University Filter */}
+              <div className="mb-5">
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-2">{t('catalog.filter.university')}</p>
                     <select
                       className="input text-xs"
                       value={selectedUni}
@@ -232,8 +189,6 @@ export default function CatalogPage() {
                       ))}
                     </div>
                   </div>
-                </>
-              )}
             </div>
           </aside>
 
@@ -242,85 +197,58 @@ export default function CatalogPage() {
 
             {/* Search and control bar */}
             <div className="flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 mb-6">
-              {contentType === 'exams' && (
-                <div className="relative flex-1 max-w-md">
-                  <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
-                  <input
-                    type="text"
-                    placeholder="Search by subject, code, university..."
-                    value={searchQuery}
-                    onChange={(e) => setSearchQuery(e.target.value)}
-                    className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-medium focus:outline-none focus:border-green"
-                  />
-                  {searchQuery && (
-                    <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
-                      <X size={14} />
-                    </button>
-                  )}
-                </div>
-              )}
+              <div className="relative flex-1 max-w-md">
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                <input
+                  type="text"
+                  placeholder="Search by subject, code, university..."
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  className="w-full pl-9 pr-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-medium focus:outline-none focus:border-green"
+                />
+                {searchQuery && (
+                  <button onClick={() => setSearchQuery('')} className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400">
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
 
               {/* Mobile Filter Button */}
-              {contentType === 'exams' && (
-                <button
-                  onClick={() => setSidebarOpen(true)}
-                  className="lg:hidden flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-ink"
-                >
-                  <SlidersHorizontal size={14} />
-                  Filters
-                </button>
-              )}
-            </div>
-
-            {/* Content type tabs (mobile) */}
-            <div className="flex lg:hidden gap-2 mb-6">
               <button
-                onClick={() => setContentType('exams')}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                  contentType === 'exams' ? 'bg-green text-white' : 'bg-white border border-gray-200 text-gray-700'
-                }`}
+                onClick={() => setSidebarOpen(true)}
+                className="lg:hidden flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl border border-gray-200 bg-white text-xs font-bold text-ink"
               >
-                Exam Tests (20 ETB)
-              </button>
-              <button
-                onClick={() => setContentType('telegram')}
-                className={`flex-1 py-2 rounded-xl text-xs font-bold transition-all ${
-                  contentType === 'telegram' ? 'bg-green text-white' : 'bg-white border border-gray-200 text-gray-700'
-                }`}
-              >
-                Telegram Premium ⚡
+                <SlidersHorizontal size={14} />
+                Filters
               </button>
             </div>
 
             {/* Quick Course Pills Filter */}
-            {contentType === 'exams' && (
-              <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
-                {[
-                  { id: 'all', label: 'All Courses' },
-                  { id: 'MATH 1011', label: 'Applied Mathematics (MATH 1011)' },
-                  { id: 'PHYS 1011', label: 'General Physics I (PHYS 1011)' },
-                  { id: 'PHYS 1022', label: 'General Physics II (PHYS 1022)' },
-                  { id: 'COSC 1011', label: 'Computer Science (COSC 1011)' },
-                  { id: 'FLEn 1011', label: 'Communicative English (FLEn 1011)' },
-                ].map((course) => (
-                  <button
-                    key={course.id}
-                    onClick={() => setSelectedCourse(course.id)}
-                    className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
-                      selectedCourse === course.id
-                        ? 'bg-green text-white shadow-sm'
-                        : 'bg-white border border-gray-200 text-gray-600 hover:border-green/40 hover:text-green'
-                    }`}
-                  >
-                    {course.label}
-                  </button>
-                ))}
-              </div>
-            )}
+            <div className="flex items-center gap-2 overflow-x-auto pb-3 mb-6 scrollbar-hide">
+              {[
+                { id: 'all', label: 'All Courses' },
+                { id: 'MATH 1011', label: 'Applied Mathematics (MATH 1011)' },
+                { id: 'PHYS 1011', label: 'General Physics I (PHYS 1011)' },
+                { id: 'PHYS 1022', label: 'General Physics II (PHYS 1022)' },
+                { id: 'COSC 1011', label: 'Computer Science (COSC 1011)' },
+                { id: 'FLEn 1011', label: 'Communicative English (FLEn 1011)' },
+              ].map((course) => (
+                <button
+                  key={course.id}
+                  onClick={() => setSelectedCourse(course.id)}
+                  className={`px-3.5 py-1.5 rounded-full text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
+                    selectedCourse === course.id
+                      ? 'bg-green text-white shadow-sm'
+                      : 'bg-white border border-gray-200 text-gray-600 hover:border-green/40 hover:text-green'
+                  }`}
+                >
+                  {course.label}
+                </button>
+              ))}
+            </div>
 
             {/* Grid */}
-            {contentType === 'exams' ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredExams.map((exam) => {
                   const isUnlocked = unlockedItems.includes(exam.id) || exam.is_free_sample;
                   const firstImage = exam.images && exam.images.length > 0 ? exam.images[0] : '/test-images/photo_2026-10-23_20-07-33.jpg';
@@ -410,56 +338,6 @@ export default function CatalogPage() {
                   );
                 })}
               </div>
-            ) : (
-              /* Telegram Premium Grid in Catalog */
-              <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-6">
-                {TELEGRAM_PREMIUM_PLANS.map((plan) => (
-                  <div
-                    key={plan.id}
-                    className="card p-6 bg-white rounded-3xl border border-gray-100 shadow-card hover:shadow-xl transition-all flex flex-col justify-between"
-                  >
-                    <div>
-                      <div className="flex items-center justify-between mb-3">
-                        <span className="text-xl font-black text-ink">{plan.name}</span>
-                        {plan.badge && (
-                          <span className="text-[10px] font-black px-2.5 py-0.5 rounded-full uppercase bg-gold text-ink">
-                            {plan.badge}
-                          </span>
-                        )}
-                      </div>
-                      <p className="text-xs text-gray-500 mb-4">{plan.description}</p>
-
-                      <div className="mb-6 pb-4 border-b border-gray-100">
-                        <div className="flex items-baseline gap-2">
-                          <span className="text-3xl font-black text-green">{plan.price} ETB</span>
-                          <span className="text-sm text-gray-400 line-through">{plan.original_price} ETB</span>
-                        </div>
-                        <span className="text-[11px] font-bold text-emerald-700 bg-emerald-50 px-2 py-0.5 rounded">
-                          Save {plan.discount_percent}% off regular rate
-                        </span>
-                      </div>
-
-                      <ul className="space-y-2 mb-6">
-                        {plan.features.map((feat, idx) => (
-                          <li key={idx} className="flex items-center gap-2 text-xs text-gray-600">
-                            <CheckCircle size={14} className="text-emerald-600 flex-shrink-0" />
-                            <span>{feat}</span>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-
-                    <Link
-                      href={`/checkout?item=${plan.id}&type=telegram`}
-                      className="w-full py-3 px-4 rounded-xl bg-ink hover:bg-green text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition shadow-md"
-                    >
-                      <Zap size={14} className="text-gold fill-gold" />
-                      Buy with Telebirr ({plan.price} ETB)
-                    </Link>
-                  </div>
-                ))}
-              </div>
-            )}
           </div>
         </div>
       </div>

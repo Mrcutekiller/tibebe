@@ -22,13 +22,6 @@ const navLinks = [
   { href: '#download', label: 'Download App', icon: Download, badge: 'APK / iOS' },
 ];
 
-const quickExploreLinks = [
-  { href: '/dashboard/catalog', label: 'Exam Papers & Tests', icon: FileText, badge: 'Verified' },
-  { href: '/dashboard/smart-notes', label: 'AI Smart Notes & Flash', icon: Sparkles, badge: 'AI' },
-  { href: '/dashboard/competition', label: 'Monthly Competition', icon: Trophy, badge: '1,000 ETB' },
-  { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap, badge: '⚡ Instant' },
-];
-
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -320,84 +313,35 @@ export default function Navbar() {
             </div>
 
             {/* Scrollable Drawer Body */}
-            <div className="flex-1 overflow-y-auto px-4 py-5 space-y-6">
-              {/* Section: Main Menu */}
-              <div>
-                <p className="px-3 text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
-                  Navigation
-                </p>
-                <div className="space-y-1">
-                  {navLinks.map(({ href, label, badge, icon: Icon }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={(e) => {
-                        if (href.startsWith('#')) {
-                          e.preventDefault();
-                          const target = document.querySelector(href);
-                          if (target) {
-                            target.scrollIntoView({ behavior: 'smooth' });
-                          }
-                          setMobileOpen(false);
+            <div className="flex-1 overflow-y-auto px-4 py-6">
+              <div className="space-y-1.5">
+                {navLinks.map(({ href, label, badge, icon: Icon }) => (
+                  <Link
+                    key={href}
+                    href={href}
+                    onClick={(e) => {
+                      if (href.startsWith('#')) {
+                        e.preventDefault();
+                        const target = document.querySelector(href);
+                        if (target) {
+                          target.scrollIntoView({ behavior: 'smooth' });
                         }
-                      }}
-                      className="flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-bold text-ink hover:bg-emerald-50/70 hover:text-[#0B5D3B] transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        {Icon && <Icon size={19} className="text-[#0B5D3B] group-hover:scale-110 transition-transform" />}
-                        <span>{label}</span>
-                      </div>
-                      {badge && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-[#0B5D3B]">
-                          {badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Section: Learning Space & Hub */}
-              <div>
-                <p className="px-3 text-[10px] font-black uppercase tracking-wider text-gray-400 mb-2">
-                  Learning Space & Tools
-                </p>
-                <div className="space-y-1">
-                  {quickExploreLinks.map(({ href, label, icon: Icon, badge }) => (
-                    <Link
-                      key={href}
-                      href={href}
-                      onClick={() => setMobileOpen(false)}
-                      className="flex items-center justify-between px-3.5 py-3 rounded-2xl text-sm font-bold text-gray-700 hover:bg-emerald-50/70 hover:text-[#0B5D3B] transition-all group"
-                    >
-                      <div className="flex items-center gap-3">
-                        <Icon size={18} className="text-emerald-700 group-hover:scale-110 transition-transform" />
-                        <span>{label}</span>
-                      </div>
-                      {badge && (
-                        <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200/60">
-                          {badge}
-                        </span>
-                      )}
-                    </Link>
-                  ))}
-                </div>
-              </div>
-
-              {/* Language switcher */}
-              <div className="pt-2 border-t border-gray-100">
-                <button
-                  onClick={() => toggleLocale()}
-                  className="w-full flex items-center justify-between px-3.5 py-3 rounded-2xl text-xs font-bold text-gray-600 bg-gray-50 hover:bg-gray-100 transition-colors cursor-pointer"
-                >
-                  <div className="flex items-center gap-2.5">
-                    <Globe size={16} className="text-[#0B5D3B]" />
-                    <span>Language: {locale === 'en' ? 'English (EN)' : 'አማርኛ (AM)'}</span>
-                  </div>
-                  <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded bg-white border border-gray-200 text-ink">
-                    Switch to {locale === 'en' ? 'አማርኛ' : 'EN'}
-                  </span>
-                </button>
+                        setMobileOpen(false);
+                      }
+                    }}
+                    className="flex items-center justify-between px-4 py-3.5 rounded-2xl text-base font-bold text-ink hover:bg-emerald-50/70 hover:text-[#0B5D3B] transition-all group"
+                  >
+                    <div className="flex items-center gap-3.5">
+                      {Icon && <Icon size={20} className="text-[#0B5D3B] group-hover:scale-110 transition-transform" />}
+                      <span>{label}</span>
+                    </div>
+                    {badge && (
+                      <span className="text-[10px] font-black px-2 py-0.5 rounded-full bg-emerald-100 text-[#0B5D3B]">
+                        {badge}
+                      </span>
+                    )}
+                  </Link>
+                ))}
               </div>
             </div>
 

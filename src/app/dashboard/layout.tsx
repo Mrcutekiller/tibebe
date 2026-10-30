@@ -14,17 +14,18 @@ import AuthGuard from '@/components/ui/AuthGuard';
 import { cn } from '@/lib/utils';
 import toast from 'react-hot-toast';
 
-const NAV_ITEMS = [
+const MAIN_NAV_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, exact: true },
-  { href: '/dashboard/profile', label: 'My Account & Profile', icon: UserCheck },
-  { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy, badge: '🏆 1K' },
-  { href: '/download', label: 'Download Mobile App', icon: Smartphone, badge: 'APK' },
-  { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles, badge: 'AI' },
   { href: '/dashboard/catalog', label: 'Exam Tests', icon: FileText },
+  { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles, badge: 'AI' },
   { href: '/dashboard/library', label: 'My Library', icon: Library },
-  { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
-  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy, badge: '🏆 1K' },
   { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap, badge: '⚡' },
+  { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
+];
+
+const ACCOUNT_NAV_ITEMS = [
+  { href: '/dashboard/profile', label: 'My Account & Profile', icon: UserCheck },
   { href: '/dashboard/help', label: 'Help & FAQ', icon: HelpCircle },
 ];
 
@@ -196,53 +197,88 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           </div>
 
           {/* Nav items list */}
-          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-1">
-            <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-300/60 mb-2">
-              Learning Space
-            </p>
-            {NAV_ITEMS.map((item) => {
-              const Icon = item.icon;
-              const isActive = item.exact
-                ? pathname === item.href
-                : pathname === item.href ||
-                  (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
-                  (item.href === '/dashboard/smart-notes' && (pathname === '/smart-notes' || pathname.startsWith('/smart-notes'))) ||
-                  (item.href === '/dashboard/catalog' && (pathname === '/catalog' || pathname.startsWith('/catalog'))) ||
-                  (item.href === '/dashboard/telegram-premium' && (pathname === '/telegram-premium' || pathname.startsWith('/telegram-premium')));
+          <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-4">
+            <div>
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-300/60 mb-2">
+                Learning Space
+              </p>
+              <div className="space-y-1">
+                {MAIN_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = item.exact
+                    ? pathname === item.href
+                    : pathname === item.href ||
+                      (item.href !== '/dashboard' && pathname.startsWith(item.href)) ||
+                      (item.href === '/dashboard/smart-notes' && (pathname === '/smart-notes' || pathname.startsWith('/smart-notes'))) ||
+                      (item.href === '/dashboard/catalog' && (pathname === '/catalog' || pathname.startsWith('/catalog'))) ||
+                      (item.href === '/dashboard/telegram-premium' && (pathname === '/telegram-premium' || pathname.startsWith('/telegram-premium')));
 
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileSidebarOpen(false)}
-                  className={cn(
-                    'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group',
-                    isActive
-                      ? 'bg-white text-[#0B5D3B] shadow-md font-black translate-x-1'
-                      : 'text-emerald-100/90 hover:bg-emerald-800/60 hover:text-white'
-                  )}
-                >
-                  <div className="flex items-center gap-3">
-                    <Icon size={18} className={isActive ? 'text-[#0B5D3B]' : 'text-emerald-300 group-hover:text-white'} />
-                    <span>{item.label}</span>
-                  </div>
-                  {item.badge && (
-                    <span
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileSidebarOpen(false)}
                       className={cn(
-                        'text-[10px] font-black px-1.5 py-0.5 rounded-full',
-                        isActive ? 'bg-[#0B5D3B] text-white' : 'bg-gold/30 text-gold border border-gold/40'
+                        'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group',
+                        isActive
+                          ? 'bg-white text-[#0B5D3B] shadow-md font-black translate-x-1'
+                          : 'text-emerald-100/90 hover:bg-emerald-800/60 hover:text-white'
                       )}
                     >
-                      {item.badge}
-                    </span>
-                  )}
-                </Link>
-              );
-            })}
+                      <div className="flex items-center gap-3">
+                        <Icon size={18} className={isActive ? 'text-[#0B5D3B]' : 'text-emerald-300 group-hover:text-white'} />
+                        <span>{item.label}</span>
+                      </div>
+                      {item.badge && (
+                        <span
+                          className={cn(
+                            'text-[10px] font-black px-1.5 py-0.5 rounded-full',
+                            isActive ? 'bg-[#0B5D3B] text-white' : 'bg-gold/30 text-gold border border-gold/40'
+                          )}
+                        >
+                          {item.badge}
+                        </span>
+                      )}
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+
+            <div>
+              <p className="px-3 text-[10px] font-bold uppercase tracking-wider text-emerald-300/60 mb-2">
+                Account & Support
+              </p>
+              <div className="space-y-1">
+                {ACCOUNT_NAV_ITEMS.map((item) => {
+                  const Icon = item.icon;
+                  const isActive = pathname === item.href;
+
+                  return (
+                    <Link
+                      key={item.href}
+                      href={item.href}
+                      onClick={() => setMobileSidebarOpen(false)}
+                      className={cn(
+                        'flex items-center justify-between px-3.5 py-2.5 rounded-xl text-xs font-bold transition-all group',
+                        isActive
+                          ? 'bg-white text-[#0B5D3B] shadow-md font-black translate-x-1'
+                          : 'text-emerald-100/90 hover:bg-emerald-800/60 hover:text-white'
+                      )}
+                    >
+                      <div className="flex items-center gap-3">
+                        <Icon size={18} className={isActive ? 'text-[#0B5D3B]' : 'text-emerald-300 group-hover:text-white'} />
+                        <span>{item.label}</span>
+                      </div>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
 
             {/* Admin Portal shortcut if authorized */}
             {user?.role === 'admin' && (
-              <div className="pt-3">
+              <div className="pt-2">
                 <Link
                   href="/admin"
                   onClick={() => setMobileSidebarOpen(false)}

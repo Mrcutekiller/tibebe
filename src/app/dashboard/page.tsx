@@ -63,12 +63,12 @@ const PRACTICE_QUIZZES: QuizQuestion[] = [
 
 const SIDEBAR_ITEMS = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles },
   { href: '/dashboard/catalog', label: 'Exam Tests', icon: FileText },
+  { href: '/dashboard/smart-notes', label: 'Smart Notes & Flash', icon: Sparkles },
   { href: '/dashboard/library', label: 'My Library', icon: Library },
-  { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
-  { href: '/dashboard/certificates', label: 'Certificates', icon: Award },
+  { href: '/dashboard/competition', label: 'Competition & Prizes', icon: Trophy },
   { href: '/dashboard/telegram-premium', label: 'Telegram Premium', icon: Zap },
+  { href: '/dashboard/orders', label: 'Orders & Bills', icon: ShoppingBag },
   { href: '/dashboard/profile', label: 'Settings', icon: Settings },
 ];
 
