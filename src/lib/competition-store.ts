@@ -879,7 +879,108 @@ export function checkAndRotateMonthlySeason(): boolean {
   return false;
 }
 
-// Internal finalizer to archive the 3 winners and reset points
+
+// Automatically credits cash prize directly to the winner's wallet (in-app balance & Supabase)
+// Winners can immediately withdraw via Telebirr/CBE or use it to purchase exam tests!
+export async function creditWinnerWalletPrize(
+  userId: string,
+  userName: string,
+  prizeAmount: number,
+  badge: string,
+  seasonName: string
+): Promise<{ success: boolean; newBalance?: number }> {
+  if (typeof window === 'undefined') return { success: false };
+
+  let creditedBalance: number | undefined;
+
+  // 1. Credit local wallet if this winner is currently logged in on this browser
+  try {
+    const uRaw = localStorage.getItem('tibeb_user');
+    const activeUser = uRaw ? JSON.parse(uRaw) : null;
+    const isCurrentUser = activeUser && (activeUser.id === userId || activeUser.name === userName);
+
+    if (isCurrentUser) {
+      const curBal = parseFloat(localStorage.getItem('tibeb_wallet_balance') || '0');
+      const nextBal = curBal + prizeAmount;
+      creditedBalance = nextBal;
+      localStorage.setItem('tibeb_wallet_balance', nextBal.toString());
+
+      activeUser.walletBalance = nextBal;
+      activeUser.wallet_balance = nextBal;
+      localStorage.setItem('tibeb_user', JSON.stringify(activeUser));
+
+      // Add to personal transactions log
+      const txs = JSON.parse(localStorage.getItem('tibeb_transactions') || '[]');
+      txs.unshift({
+        id: `prize-${Date.now()}-${userId}`,
+        type: 'leaderboard',
+        amount: prizeAmount,
+        date: new Date().toISOString(),
+        description: `🏆 Monthly Competition Prize (${badge} - ${seasonName}): +${prizeAmount} ETB Deposited to Wallet`,
+        status: 'completed',
+      });
+      localStorage.setItem('tibeb_transactions', JSON.stringify(txs));
+
+      window.dispatchEvent(new Event('tibeb_wallet_updated'));
+      window.dispatchEvent(new Event('storage'));
+    }
+  } catch (err) {
+    console.error('Failed to update local active wallet:', err);
+  }
+
+  // 2. Credit in registered users table (local DB)
+  try {
+    const rawReg = localStorage.getItem('tibeb_registered_users');
+    if (rawReg) {
+      const regList: any[] = JSON.parse(rawReg);
+      const idx = regList.findIndex(u => u.id === userId || u.name === userName);
+      if (idx >= 0) {
+        const prevBal = Number(regList[idx].walletBalance || regList[idx].wallet_balance || 0);
+        const nextBal = prevBal + prizeAmount;
+        regList[idx].walletBalance = nextBal;
+        regList[idx].wallet_balance = nextBal;
+        localStorage.setItem('tibeb_registered_users', JSON.stringify(regList));
+      }
+    }
+  } catch (err) {
+    console.error('Failed to update registered users list:', err);
+  }
+
+  // 3. Credit directly in Supabase users table (cloud database)
+  try {
+    const { data: supaUser } = await supabase
+      .from('users')
+      .select('id, wallet_balance')
+      .eq('id', userId)
+      .maybeSingle();
+
+    if (supaUser) {
+      const curSupaBal = Number(supaUser.wallet_balance || 0);
+      const nextSupaBal = curSupaBal + prizeAmount;
+      await supabase
+        .from('users')
+        .update({ wallet_balance: nextSupaBal })
+        .eq('id', userId);
+    }
+  } catch (supaErr) {
+    console.warn('Supabase wallet credit warning:', supaErr);
+  }
+
+  // 4. Send official notification to winner with direct withdraw & test purchase links
+  try {
+    addNotification({
+      userId,
+      title: `💰 ${prizeAmount} ETB Prize Deposited into Your Wallet!`,
+      message: `Congratulations! As a Top 3 Monthly Winner (${badge}), your cash prize of ${prizeAmount} ETB has been automatically deposited into your Tibeb wallet. You can now withdraw it to Telebirr/CBE or use it to unlock exam tests!`,
+      type: 'leaderboard',
+      link: '/dashboard/withdraw',
+    });
+  } catch {}
+
+  return { success: true, newBalance: creditedBalance };
+}
+
+// Internal finalizer to archive the 3 winners, deposit prizes into their wallets, and reset points
 function finalizeMonthSeasonInternal(seasonToClose: string): MonthlySeasonResult | null {
   if (typeof window === 'undefined') return null;
 
@@ -897,6 +998,8 @@ function finalizeMonthSeasonInternal(seasonToClose: string): MonthlySeasonResult
     ];
 
     const winners: MonthlyWinnerEntry[] = [];
+    const seasonName = getSeasonDisplayName(seasonToClose);
+
     qualified.slice(0, 3).forEach((q, idx) => {
       const p = prizes[idx];
       winners.push({
@@ -911,21 +1014,13 @@ function finalizeMonthSeasonInternal(seasonToClose: string): MonthlySeasonResult
         avatar: q.avatar,
       });
 
-      // Notify winner
-      try {
-        addNotification({
-          userId: q.id,
-          title: `🏆 You Won ${p.prizeEtb} ETB in ${getSeasonDisplayName(seasonToClose)}!`,
-          message: `Congratulations! You placed #${p.place} on the monthly leaderboard with ${q.points} points. Your cash reward of ${p.prizeEtb} ETB is awarded!`,
-          type: 'leaderboard',
-          link: '/dashboard/competition',
-        });
-      } catch {}
+      // AUTOMATICALLY CREDIT PRIZE TO WINNER'S WALLET
+      creditWinnerWalletPrize(q.id, q.name, p.prizeEtb, p.badge, seasonName);
     });
 
     const result: MonthlySeasonResult = {
       seasonKey: seasonToClose,
-      seasonName: getSeasonDisplayName(seasonToClose),
+      seasonName,
       finalizedAt: new Date().toISOString(),
       totalParticipants: qualified.length,
       winners,
@@ -959,37 +1054,123 @@ function finalizeMonthSeasonInternal(seasonToClose: string): MonthlySeasonResult
   }
 }
 
-// Admin action: Manually finalize current month and reward the 3 winners
+// Admin action: Manually finalize current month, automatically deposit prizes into the 3 winners' wallets, and reset leaderboard to 0
 export async function finalizeCurrentMonthManually(): Promise<{ success: boolean; message: string; result?: MonthlySeasonResult }> {
   if (typeof window === 'undefined') return { success: false, message: 'Client only' };
 
   try {
     const currentSeason = getCurrentSeasonKey();
-    const result = finalizeMonthSeasonInternal(currentSeason);
-    
-    // Also reset in Supabase if connected
+    const seasonName = getSeasonDisplayName(currentSeason);
+
+    // 1. First check Supabase for real live qualified competitors
+    let qualifiedEntries: { id: string; name: string; university: string; department: string; points: number; avatar?: string }[] = [];
+
+    try {
+      const { data: supaUsers, error } = await supabase
+        .from('users')
+        .select('id, name, university_id, department, avatar_url, competition_points')
+        .gt('competition_points', 0)
+        .order('competition_points', { ascending: false })
+        .limit(3);
+
+      if (!error && supaUsers && supaUsers.length > 0) {
+        qualifiedEntries = supaUsers.map(u => ({
+          id: u.id,
+          name: u.name,
+          university: u.university_id ? u.university_id.toUpperCase() : 'AAU',
+          department: u.department || 'Enrolled Student',
+          points: Number(u.competition_points) || 0,
+          avatar: u.avatar_url,
+        }));
+      }
+    } catch {}
+
+    // Fall back to local board if Supabase is offline
+    if (qualifiedEntries.length === 0) {
+      const rawBoard = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+      const board: StudentLeaderboardEntry[] = rawBoard ? JSON.parse(rawBoard) : [];
+      qualifiedEntries = board.filter(e => e.points > 0).sort((a, b) => b.points - a.points).slice(0, 3);
+    }
+
+    const prizes = [
+      { place: 1 as const, prizeEtb: 1000, badge: '🥇 1st Place Champion' },
+      { place: 2 as const, prizeEtb: 600, badge: '🥈 2nd Place Winner' },
+      { place: 3 as const, prizeEtb: 300, badge: '🥉 3rd Place Winner' },
+    ];
+
+    const winners: MonthlyWinnerEntry[] = [];
+
+    for (let idx = 0; idx < qualifiedEntries.length && idx < 3; idx++) {
+      const q = qualifiedEntries[idx];
+      const p = prizes[idx];
+      winners.push({
+        place: p.place,
+        userId: q.id,
+        userName: q.name,
+        university: q.university,
+        department: q.department,
+        points: q.points,
+        prizeEtb: p.prizeEtb,
+        badge: p.badge,
+        avatar: q.avatar,
+      });
+
+      // AUTOMATICALLY DEPOSIT CASH PRIZE INTO WINNER WALLET
+      await creditWinnerWalletPrize(q.id, q.name, p.prizeEtb, p.badge, seasonName);
+    }
+
+    const result: MonthlySeasonResult = {
+      seasonKey: currentSeason,
+      seasonName,
+      finalizedAt: new Date().toISOString(),
+      totalParticipants: qualifiedEntries.length,
+      winners,
+    };
+
+    // Save to Hall of Fame archive
+    const pastWinners = getPastMonthlyWinners();
+    pastWinners.unshift(result);
+    localStorage.setItem(MONTHLY_WINNERS_KEY, JSON.stringify(pastWinners));
+
+    // Reset competition points in Supabase
     try {
       await supabase.from('users').update({ competition_points: 0 }).neq('id', 'system');
     } catch {}
 
-    // Advance season key to next month or mark finalized
+    // RESET TO ZERO FOR NEW MONTH LOCALLY
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(STUDENT_POINTS_STORAGE_KEY, JSON.stringify(0));
+
+    const uRaw = localStorage.getItem('tibeb_user');
+    if (uRaw) {
+      const u = JSON.parse(uRaw);
+      u.competition_points = 0;
+      localStorage.setItem('tibeb_user', JSON.stringify(u));
+    }
+
+    // Advance season key
     const now = new Date();
     const nextMonth = `${now.getFullYear()}-${String(now.getMonth() + 2).padStart(2, '0')}`;
     localStorage.setItem(CURRENT_SEASON_KEY, nextMonth);
 
-    if (result && result.winners.length > 0) {
-      const names = result.winners.map(w => `${w.badge}: ${w.userName} (${w.prizeEtb} ETB)`).join(', ');
+    window.dispatchEvent(new Event('tibeb_student_points_updated'));
+    window.dispatchEvent(new Event('tibeb_competition_leaderboard_updated'));
+    window.dispatchEvent(new Event('tibeb_wallet_updated'));
+    window.dispatchEvent(new Event('storage'));
+
+    if (winners.length > 0) {
+      const names = winners.map(w => `${w.badge}: ${w.userName} (+${w.prizeEtb} ETB deposited to wallet)`).join(' | ');
       return {
         success: true,
-        message: `${result.seasonName} successfully finalized! 3 Winners: ${names}. Leaderboard reset to 0 for the new month.`,
+        message: `${seasonName} successfully finalized! Prizes automatically credited to wallets: ${names}. Leaderboard reset to 0 for the new month. Winners can immediately withdraw or buy tests!`,
         result,
       };
     }
 
     return {
       success: true,
-      message: `${getSeasonDisplayName(currentSeason)} finalized! No competitors had points > 0. Leaderboard reset to 0 for the new month.`,
-      result: result || undefined,
+      message: `${seasonName} finalized! No students had points > 0. Leaderboard reset to 0 for the new month.`,
+      result,
     };
   } catch (err: any) {
     return { success: false, message: err?.message || 'Failed to finalize month' };

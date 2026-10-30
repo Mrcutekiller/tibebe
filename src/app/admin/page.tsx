@@ -122,7 +122,7 @@ export default function AdminPortalPage() {
   };
 
   const handleFinalizeMonthlySeason = async () => {
-    if (!confirm('Are you sure you want to finalize this month\'s competition? This will archive the top 3 student winners, award their cash prizes (1st: 1,000 ETB, 2nd: 600 ETB, 3rd: 300 ETB), and reset all leaderboard scores to 0 for the brand new month.')) {
+    if (!confirm('Are you sure you want to finalize this month\'s competition? This will automatically deposit cash prizes into the 3 winners\' wallets (1st: 1,000 ETB, 2nd: 600 ETB, 3rd: 300 ETB) so they can immediately withdraw or buy tests, and reset all leaderboard scores to 0 for the brand new month.')) {
       return;
     }
     const res = await finalizeCurrentMonthManually();
@@ -3287,7 +3287,7 @@ export default function AdminPortalPage() {
                   onClick={handleFinalizeMonthlySeason}
                   className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all cursor-pointer shadow-sm flex items-center gap-2 shrink-0"
                 >
-                  <Trophy size={14} /> Finalize Month & Award 3 Winners (Reset to 0)
+                  <Trophy size={14} /> Finalize Month & Auto-Credit 3 Winners Wallets (Reset to 0)
                 </button>
               </div>
 

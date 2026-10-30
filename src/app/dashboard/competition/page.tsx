@@ -578,7 +578,7 @@ export default function CompetitionLeaderboardPage() {
                   </span>
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Scores start from 0 every month. The Top 3 students on the final day win 1,000 ETB, 600 ETB, and 300 ETB cash prizes!
+                  Scores start from 0 every month. The Top 3 students on the final day win 1,000 ETB, 600 ETB, and 300 ETB cash prizes automatically credited to their wallet to withdraw or buy tests!
                 </p>
               </div>
               <span className="text-[11px] font-bold text-gray-400">
@@ -1075,7 +1075,7 @@ export default function CompetitionLeaderboardPage() {
                   Hall of Fame — 3 Monthly Winners
                 </h2>
                 <p className="text-xs text-gray-500">
-                  At the end of every month, scores reset to 0 and the top 3 highest-ranking students receive their cash rewards.
+                  At the end of every month, scores reset to 0 and the top 3 highest-ranking students receive their cash rewards automatically deposited into their wallet. Winners can immediately withdraw via Telebirr/CBE or buy tests with it.
                 </p>
               </div>
               <div className="flex items-center gap-2">
@@ -1140,8 +1140,8 @@ export default function CompetitionLeaderboardPage() {
                             <span className="text-xl">
                               {w.place === 1 ? '🥇' : w.place === 2 ? '🥈' : '🥉'}
                             </span>
-                            <span className="text-xs font-black px-2 py-0.5 rounded-full bg-white shadow-xs">
-                              {w.prizeEtb} ETB Prize
+                            <span className="text-xs font-black px-2 py-0.5 rounded-full bg-white shadow-xs text-emerald-800">
+                              {w.prizeEtb} ETB Deposited in Wallet
                             </span>
                           </div>
                           <div>
