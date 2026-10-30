@@ -437,7 +437,29 @@ export default function CompetitionLeaderboardPage() {
 
             {/* Top 20 Table / Responsive Mobile Cards */}
             <div className="divide-y divide-gray-100">
-              {top20.map((entry, index) => {
+              {top20.length === 0 ? (
+                <div className="text-center py-12 px-4 space-y-3">
+                  <div className="w-14 h-14 rounded-3xl bg-amber-50 text-gold mx-auto flex items-center justify-center border border-amber-200">
+                    <Trophy size={28} className="text-gold" />
+                  </div>
+                  <h3 className="font-black text-ink text-base">New Season Begins! No Ranked Students Yet</h3>
+                  <p className="text-xs text-gray-500 max-w-md mx-auto">
+                    Be the very first student to complete a course quiz or unlock an exam test to claim the #1 spot and win the 1,000 ETB cash prize!
+                  </p>
+                  <button
+                    onClick={() => {
+                      setActiveTab('quiz');
+                      if (COURSE_COMPETITION_QUIZZES.length > 0) {
+                        handleStartQuiz(COURSE_COMPETITION_QUIZZES[0]);
+                      }
+                    }}
+                    className="px-5 py-2.5 rounded-xl bg-[#0B5D3B] text-white text-xs font-bold shadow-md hover:bg-emerald-800 transition-all inline-flex items-center gap-2 cursor-pointer"
+                  >
+                    <Play size={14} /> Start 1st Quiz (+100 Points)
+                  </button>
+                </div>
+              ) : (
+                top20.map((entry, index) => {
                 const rank = index + 1;
                 const isCurrentUser = entry.id === user?.id || entry.name === user?.name;
                 const isFirst = rank === 1;
@@ -541,7 +563,7 @@ export default function CompetitionLeaderboardPage() {
                     </div>
                   </div>
                 );
-              })}
+              }))}
             </div>
 
             {/* Bottom Note for user > 20 */}

@@ -20,6 +20,7 @@ import {
   type PaymentVerification
 } from '@/lib/payment-verification';
 import { awardStudentPoints, POINT_REWARDS } from '@/lib/competition-store';
+import { validateCoupon, recordCouponUsage } from '@/lib/coupon-store';
 import toast from 'react-hot-toast';
 import AuthGuard from '@/components/ui/AuthGuard';
 
@@ -135,17 +136,30 @@ function CheckoutContent() {
   const total = Math.max(0, subtotal - discount);
 
   const handleApplyCoupon = () => {
-    if (couponCode.toUpperCase() === 'TIBEB20') {
-      setDiscount(Math.round(subtotal * 0.2));
-      setCouponApplied(true);
-      toast.success('Coupon applied! 20% off');
-    } else if (couponCode.toUpperCase() === 'WELCOME') {
-      setDiscount(30);
-      setCouponApplied(true);
-      toast.success('Welcome coupon applied! ETB 30 off');
-    } else {
-      toast.error('Invalid coupon code');
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
     }
+    const res = validateCoupon(couponCode, subtotal, user?.id);
+    if (res.valid && res.coupon) {
+      setDiscount(res.discountAmount);
+      setCouponApplied(true);
+      const discountLabel = res.coupon.discountType === 'percentage'
+        ? `${res.coupon.discountValue}% OFF`
+        : `${res.coupon.discountValue} ETB OFF`;
+      toast.success(`Coupon "${res.coupon.code}" applied! (${discountLabel})`);
+    } else {
+      setDiscount(0);
+      setCouponApplied(false);
+      toast.error(res.error || 'Invalid or expired coupon code');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setDiscount(0);
+    setCouponApplied(false);
+    toast.success('Coupon removed');
   };
 
   // Process uploaded screenshot with realistic scanner
@@ -286,6 +300,10 @@ function CheckoutContent() {
             university: user.department || 'AAU',
             department: 'Exam Test'
           });
+        }
+        // Record coupon usage if applied
+        if (couponApplied && couponCode) {
+          recordCouponUsage(couponCode, user.id);
         }
       }
 
@@ -671,9 +689,9 @@ function CheckoutContent() {
                 <div className="flex items-center justify-between p-3.5 rounded-2xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
                   <span className="flex items-center gap-2">
                     <CheckCircle size={16} />
-                    Coupon '{couponCode.toUpperCase()}' applied — saving ETB {discount}
+                    Coupon &apos;{couponCode.toUpperCase()}&apos; applied — saving ETB {discount}
                   </span>
-                  <button onClick={() => { setCouponApplied(false); setDiscount(0); }} className="text-xs text-rose-600 underline">
+                  <button onClick={handleRemoveCoupon} className="text-xs text-rose-600 underline font-bold cursor-pointer">
                     Remove
                   </button>
                 </div>
@@ -681,15 +699,15 @@ function CheckoutContent() {
                 <div className="flex gap-2">
                   <input
                     id="coupon-input"
-                    placeholder="Enter code (e.g. TIBEB20 or WELCOME)"
+                    placeholder="Enter coupon code"
                     value={couponCode}
                     onChange={(e) => setCouponCode(e.target.value)}
-                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-xs font-semibold"
+                    className="flex-1 px-4 py-2.5 rounded-xl border border-gray-200 focus:outline-none focus:ring-2 focus:ring-emerald-600 text-xs font-semibold uppercase"
                     onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
                   />
                   <button
                     onClick={handleApplyCoupon}
-                    className="px-5 py-2.5 rounded-xl bg-ink text-white text-xs font-bold hover:bg-gray-800 transition-all"
+                    className="px-5 py-2.5 rounded-xl bg-ink text-white text-xs font-bold hover:bg-gray-800 transition-all cursor-pointer"
                   >
                     Apply
                   </button>

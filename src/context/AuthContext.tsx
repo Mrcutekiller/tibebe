@@ -81,7 +81,7 @@ const AuthContext = createContext<AuthContextType | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
-  const [walletBalance, setWalletBalance] = useState<number>(120);
+  const [walletBalance, setWalletBalance] = useState<number>(0);
 
   useEffect(() => {
     // 1. Read user from localStorage
@@ -94,12 +94,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     }
 
-    // 2. Read wallet balance
+    // 2. Read wallet balance (clean slate starts from 0 ETB)
     const storedBalance = localStorage.getItem('tibeb_wallet_balance');
     if (storedBalance !== null) {
       setWalletBalance(parseFloat(storedBalance) || 0);
     } else {
-      localStorage.setItem('tibeb_wallet_balance', '120');
+      localStorage.setItem('tibeb_wallet_balance', '0');
     }
 
     // 3. Listen to Supabase Auth state changes (including Google OAuth callback)

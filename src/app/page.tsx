@@ -47,9 +47,9 @@ function HeroSection() {
   const { t, locale } = useLanguage();
   const { user } = useAuth();
 
-  // Real-time live platform statistics (no fake numbers / no demos)
+  // Real-time live platform statistics (no fake numbers / no demos - starts from 0)
   const [liveStats, setLiveStats] = useState({
-    students: '20+',
+    students: '0',
     exams: `${EXAMS.length}`,
     universities: `${UNIVERSITIES.length}`,
     delivery: '15–30 Min',
@@ -71,7 +71,7 @@ function HeroSection() {
 
       const totalExams = EXAMS.length + customExamsCount;
       setLiveStats({
-        students: registeredCount > 0 ? `${registeredCount}` : '20+',
+        students: `${registeredCount}`,
         exams: `${totalExams}`,
         universities: `${UNIVERSITIES.length}`,
         delivery: '15–30 Min',
@@ -1182,29 +1182,7 @@ function UniversitiesSection() {
 // SOCIAL PROOF / REVIEWS & TESTIMONIALS SECTION
 // =====================================================
 function SocialProofSection() {
-  const [testimonials, setTestimonials] = useState([
-    {
-      name: 'Meron Tadesse',
-      university: 'AAU — Computer Science',
-      text: 'I got a 90 on my Math final after using Tibeb. The solutions are clearer than any textbook or photocopied handout.',
-      rating: 5,
-      avatar: 'M',
-    },
-    {
-      name: 'Yonas Bekele',
-      university: 'JU — Business Admin',
-      text: 'Finally a platform that actually has authentic past papers for Ethiopian universities. Unlocked with Telebirr in seconds!',
-      rating: 5,
-      avatar: 'Y',
-    },
-    {
-      name: 'Hiwot Alemu',
-      university: 'BDU — Engineering',
-      text: 'The Telegram Premium was activated directly to my username in 5 minutes. Super smooth and trustworthy service.',
-      rating: 5,
-      avatar: 'H',
-    },
-  ]);
+  const [testimonials, setTestimonials] = useState<any[]>([]);
 
   const [showModal, setShowModal] = useState(false);
   const [rating, setRating] = useState(5);
@@ -1285,41 +1263,59 @@ function SocialProofSection() {
           viewport={{ once: true, amount: 0.15 }}
           className="grid grid-cols-1 md:grid-cols-3 gap-6"
         >
-          {testimonials.map((t, i) => (
-            <motion.div
-              key={i}
-              variants={itemVariants}
-              whileHover={{ y: -6, transition: { duration: 0.2 } }}
-              className="card p-6 bg-white hover:shadow-xl transition-all border border-stone-200/80 rounded-3xl flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-center gap-1 text-gold mb-3">
-                  {[1, 2, 3, 4, 5].map((s) => (
-                    <Star
-                      key={s}
-                      size={14}
-                      className={s <= t.rating ? 'fill-gold text-gold' : 'text-gray-200'}
-                    />
-                  ))}
-                  <span className="text-xs font-bold text-ink ml-1.5">{t.rating}.0</span>
-                </div>
-                <p className="text-sm text-gray-600 leading-relaxed mb-6 italic">"{t.text}"</p>
+          {testimonials.length === 0 ? (
+            <div className="col-span-full bg-white rounded-3xl p-8 border border-stone-200 text-center max-w-lg mx-auto space-y-3">
+              <div className="w-12 h-12 rounded-2xl bg-amber-50 text-gold flex items-center justify-center mx-auto">
+                <Star size={24} className="fill-gold" />
               </div>
-
-              <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
-                <div
-                  className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-sm"
-                  style={{ background: 'var(--color-green)' }}
-                >
-                  {t.avatar}
-                </div>
+              <h3 className="font-bold text-ink text-base">Be the First to Review Tibeb</h3>
+              <p className="text-xs text-gray-500">
+                Help fellow Ethiopian university students find authentic exam papers and study resources.
+              </p>
+              <button
+                onClick={() => setShowModal(true)}
+                className="px-5 py-2.5 rounded-xl bg-[#0B5D3B] text-white text-xs font-bold shadow-md hover:bg-emerald-800 transition-all cursor-pointer"
+              >
+                Write First Review
+              </button>
+            </div>
+          ) : (
+            testimonials.map((t, i) => (
+              <motion.div
+                key={i}
+                variants={itemVariants}
+                whileHover={{ y: -6, transition: { duration: 0.2 } }}
+                className="card p-6 bg-white hover:shadow-xl transition-all border border-stone-200/80 rounded-3xl flex flex-col justify-between"
+              >
                 <div>
-                  <p className="font-bold text-sm text-ink">{t.name}</p>
-                  <p className="text-xs text-gray-400">{t.university}</p>
+                  <div className="flex items-center gap-1 text-gold mb-3">
+                    {[1, 2, 3, 4, 5].map((s) => (
+                      <Star
+                        key={s}
+                        size={14}
+                        className={s <= t.rating ? 'fill-gold text-gold' : 'text-gray-200'}
+                      />
+                    ))}
+                    <span className="text-xs font-bold text-ink ml-1.5">{t.rating}.0</span>
+                  </div>
+                  <p className="text-sm text-gray-600 leading-relaxed mb-6 italic">&quot;{t.text}&quot;</p>
                 </div>
-              </div>
-            </motion.div>
-          ))}
+
+                <div className="flex items-center gap-3 pt-3 border-t border-gray-100">
+                  <div
+                    className="w-10 h-10 rounded-2xl flex items-center justify-center text-white font-bold text-sm shadow-sm"
+                    style={{ background: 'var(--color-green)' }}
+                  >
+                    {t.avatar}
+                  </div>
+                  <div>
+                    <p className="font-bold text-sm text-ink">{t.name}</p>
+                    <p className="text-xs text-gray-400">{t.university}</p>
+                  </div>
+                </div>
+              </motion.div>
+            ))
+          )}
         </motion.div>
 
         {/* Modal: Write Website Review */}

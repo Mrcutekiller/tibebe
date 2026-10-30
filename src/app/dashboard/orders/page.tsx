@@ -17,53 +17,7 @@ interface Order extends BillOrder {}
 function OrdersContent() {
   const { user } = useAuth();
   const [selectedReceipt, setSelectedReceipt] = useState<Order | null>(null);
-
-  const defaultOrders: Order[] = [
-    {
-      id: 'INV-2026-88124',
-      date: 'Today, 2:15 PM',
-      itemTitle: 'AAU Applied Mathematics I (MATH 1011) Final Exam + Solutions',
-      itemType: 'Exam',
-      price: 20,
-      paymentMethod: 'Telebirr',
-      status: 'Completed',
-      customerName: user?.name || 'Abebe Kebede',
-      university: 'Addis Ababa University (AAU)',
-      department: 'Faculty of Technology & Computer Science',
-      studentId: 'AAU/ET-84920',
-      txHash: 'TLB-8910482103'
-    },
-    {
-      id: 'INV-2026-75190',
-      date: 'Yesterday, 10:40 AM',
-      itemTitle: 'Telegram Premium 6 Months Instant Activation',
-      itemType: 'Telegram',
-      price: 3990,
-      paymentMethod: 'Telebirr',
-      status: 'Completed',
-      customerName: user?.name || 'Abebe Kebede',
-      university: 'Addis Ababa University (AAU)',
-      department: 'Engineering Department',
-      studentId: 'AAU/ET-84920',
-      txHash: 'TLB-7462910384'
-    },
-    {
-      id: 'INV-2026-62104',
-      date: '3 days ago',
-      itemTitle: 'General Physics Mechanics (PHYS 1011) Mid Exam Papers',
-      itemType: 'Exam',
-      price: 20,
-      paymentMethod: 'Student Wallet',
-      status: 'Completed',
-      customerName: user?.name || 'Abebe Kebede',
-      university: 'Addis Ababa University (AAU)',
-      department: 'Applied Physics',
-      studentId: 'AAU/ET-84920',
-      txHash: 'WLT-5928104829'
-    }
-  ];
-
-  const [orders, setOrders] = useState<Order[]>(defaultOrders);
+  const [orders, setOrders] = useState<Order[]>([]);
 
   React.useEffect(() => {
     // 1. Load from localStorage for immediate responsiveness
@@ -81,11 +35,7 @@ function OrdersContent() {
             status: 'Completed' as const,
           }));
 
-          setOrders(prev => {
-            const existingIds = new Set(prev.map(p => p.id));
-            const newOrders = formatted.filter(f => !existingIds.has(f.id));
-            return [...newOrders, ...prev];
-          });
+          setOrders(formatted);
         }
       } catch (err) {
         console.error('Error parsing stored orders:', err);
@@ -152,37 +102,57 @@ function OrdersContent() {
 
           {/* Orders List */}
           <div className="space-y-4">
-            {orders.map((order) => (
-              <div
-                key={order.id}
-                className="p-5 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-green/30 transition-all"
-              >
+            {orders.length === 0 ? (
+              <div className="py-16 text-center bg-gray-50 rounded-2xl border border-dashed border-gray-200 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-white text-gray-400 mx-auto flex items-center justify-center shadow-xs">
+                  <ShoppingBag size={24} />
+                </div>
                 <div>
-                  <div className="flex items-center gap-2 mb-1.5">
-                    <span className="font-mono text-xs font-bold text-ink">{order.id}</span>
-                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
-                      {order.status}
-                    </span>
-                    <span className="text-xs text-gray-400">• {order.date}</span>
-                  </div>
-                  <h4 className="font-bold text-ink text-sm mb-1">{order.itemTitle}</h4>
-                  <p className="text-xs text-gray-500">
-                    Paid via <strong>{order.paymentMethod}</strong> • {order.itemType}
+                  <h3 className="font-bold text-ink text-sm">No Orders Yet</h3>
+                  <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                    When you unlock 20 ETB exams or services, your official payment bills and transaction invoices will be listed here.
                   </p>
                 </div>
-
-                <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-200">
-                  <span className="text-base font-black text-green">{order.price} ETB</span>
-                  <button
-                    onClick={() => setSelectedReceipt(order)}
-                    className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-ink text-xs font-bold hover:bg-emerald-50 hover:border-green/40 hover:text-green flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
-                  >
-                    <Download size={13} className="text-green" />
-                    <span>View & Download Bill</span>
-                  </button>
-                </div>
+                <Link
+                  href="/catalog"
+                  className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl bg-ink hover:bg-gray-800 text-white text-xs font-bold transition-all"
+                >
+                  Browse 20 ETB Exams
+                </Link>
               </div>
-            ))}
+            ) : (
+              orders.map((order) => (
+                <div
+                  key={order.id}
+                  className="p-5 rounded-2xl bg-gray-50 border border-gray-100 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 hover:border-green/30 transition-all"
+                >
+                  <div>
+                    <div className="flex items-center gap-2 mb-1.5">
+                      <span className="font-mono text-xs font-bold text-ink">{order.id}</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        {order.status}
+                      </span>
+                      <span className="text-xs text-gray-400">• {order.date}</span>
+                    </div>
+                    <h4 className="font-bold text-ink text-sm mb-1">{order.itemTitle}</h4>
+                    <p className="text-xs text-gray-500">
+                      Paid via <strong>{order.paymentMethod}</strong> • {order.itemType}
+                    </p>
+                  </div>
+
+                  <div className="flex sm:flex-col items-center sm:items-end justify-between w-full sm:w-auto gap-3 pt-3 sm:pt-0 border-t sm:border-t-0 border-gray-200">
+                    <span className="text-base font-black text-green">{order.price} ETB</span>
+                    <button
+                      onClick={() => setSelectedReceipt(order)}
+                      className="px-3.5 py-1.5 rounded-xl bg-white border border-gray-200 text-ink text-xs font-bold hover:bg-emerald-50 hover:border-green/40 hover:text-green flex items-center gap-1.5 shadow-sm transition-all cursor-pointer"
+                    >
+                      <Download size={13} className="text-green" />
+                      <span>View & Download Bill</span>
+                    </button>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 

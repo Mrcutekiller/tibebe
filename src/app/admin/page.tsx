@@ -11,7 +11,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Sparkles, Bot,
   FileCheck, ExternalLink, Calendar, HelpCircle, Layers,
   X, Info, Phone, Mail, Award, Check, UserCheck, ChevronDown, RotateCw, Save,
-  Upload, UploadCloud, BookOpen
+  Upload, UploadCloud, BookOpen, Tag, Trash2, Ticket, Copy
 } from 'lucide-react';
 import { UNIVERSITIES, EXAMS, type Exam } from '@/lib/seed-data';
 import { useAuth } from '@/context/AuthContext';
@@ -25,6 +25,13 @@ import {
   SAMPLE_RECEIPTS
 } from '@/lib/payment-verification';
 import {
+  Coupon,
+  getStoredCoupons,
+  createCoupon,
+  deleteCoupon,
+  toggleCouponStatus,
+} from '@/lib/coupon-store';
+import {
   getSupportConversations,
   getSupportMessages,
   sendAdminReply,
@@ -33,7 +40,7 @@ import {
 } from '@/lib/support-chat';
 import toast from 'react-hot-toast';
 
-type AdminTab = 'overview' | 'verifications' | 'ai' | 'exams' | 'students' | 'support' | 'profile';
+type AdminTab = 'overview' | 'verifications' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
 
 interface SupportTicket {
   id: string;
@@ -103,6 +110,36 @@ export default function AdminPortalPage() {
 
   // Student Profile Drawer State
   const [selectedStudent, setSelectedStudent] = useState<StudentProfileDetail | null>(null);
+  const [registeredStudents, setRegisteredStudents] = useState<any[]>([]);
+
+  // Coupons State
+  const [coupons, setCoupons] = useState<Coupon[]>([]);
+  const [showCreateCouponModal, setShowCreateCouponModal] = useState(false);
+  const [newCouponCode, setNewCouponCode] = useState('');
+  const [newCouponType, setNewCouponType] = useState<'percentage' | 'fixed'>('percentage');
+  const [newCouponValue, setNewCouponValue] = useState<number>(20);
+  const [newCouponMaxUses, setNewCouponMaxUses] = useState<number>(50);
+  const [newCouponExpiry, setNewCouponExpiry] = useState<string>('');
+  const [newCouponDesc, setNewCouponDesc] = useState('');
+  const [newCouponMinOrder, setNewCouponMinOrder] = useState<number>(0);
+
+  const loadCoupons = () => {
+    setCoupons(getStoredCoupons());
+  };
+
+  useEffect(() => {
+    loadCoupons();
+    const handleCouponEvent = () => loadCoupons();
+    window.addEventListener('tibeb_coupons_updated', handleCouponEvent);
+    return () => window.removeEventListener('tibeb_coupons_updated', handleCouponEvent);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const raw = localStorage.getItem('tibeb_registered_users');
+      if (raw) setRegisteredStudents(JSON.parse(raw));
+    } catch {}
+  }, [activeTab]);
 
   // Post Exam Form State
   const [examUni, setExamUni] = useState<string>('aau');
@@ -648,6 +685,10 @@ export default function AdminPortalPage() {
 
   // Verification filtering
   const pendingCount = verifications.filter(v => v.status === 'pending').length;
+  const totalVerifiedSales = verifications
+    .filter(v => v.status === 'approved')
+    .reduce((sum, v) => sum + (v.amount || 20), 0);
+  const totalVerifiedCount = verifications.filter(v => v.status === 'approved').length;
   const filteredVerifications = verifications.filter(v => {
     if (verifFilter !== 'all' && v.status !== verifFilter) return false;
     if (searchQuery) {
@@ -796,6 +837,7 @@ export default function AdminPortalPage() {
               { id: 'ai' as AdminTab, icon: Sparkles, label: 'AI Hub', isNew: true },
               { id: 'exams' as AdminTab, icon: FileText, label: 'Exams' },
               { id: 'students' as AdminTab, icon: Users, label: 'Students' },
+              { id: 'coupons' as AdminTab, icon: Tag, label: 'Coupons' },
               { id: 'support' as AdminTab, icon: MessageSquare, label: 'Support' },
               { id: 'profile' as AdminTab, icon: UserCheck, label: 'Admin Account & Profile' },
             ].map((item) => {
@@ -875,20 +917,22 @@ export default function AdminPortalPage() {
             </p>
           </div>
 
-          {/* Quick Team / Recent Student Avatars (Inspired by Reference Images) */}
+          {/* Quick Team / Recent Student Avatars */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center -space-x-2">
-              {Object.values(MOCK_STUDENT_PROFILES).slice(0, 4).map((s) => (
-                <button
-                  key={s.id}
-                  onClick={() => setSelectedStudent(s)}
-                  className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#12202B] to-[#0B5D3B] text-white text-xs font-extrabold border-2 border-white flex items-center justify-center hover:scale-110 hover:z-10 transition-transform shadow-sm"
-                  title={`View ${s.name} (@${s.username})`}
-                >
-                  {s.name.charAt(0)}
-                </button>
-              ))}
-            </div>
+            {registeredStudents.length > 0 ? (
+              <div className="flex items-center -space-x-2">
+                {registeredStudents.slice(0, 4).map((s) => (
+                  <button
+                    key={s.id}
+                    onClick={() => handleOpenStudentProfile(s.id, s.name)}
+                    className="w-9 h-9 rounded-full bg-gradient-to-tr from-[#12202B] to-[#0B5D3B] text-white text-xs font-extrabold border-2 border-white flex items-center justify-center hover:scale-110 hover:z-10 transition-transform shadow-sm"
+                    title={`View ${s.name} (@${s.username || s.name})`}
+                  >
+                    {s.name ? s.name.charAt(0).toUpperCase() : 'S'}
+                  </button>
+                ))}
+              </div>
+            ) : null}
             <button
               onClick={() => setActiveTab('students')}
               className="text-xs font-bold text-gray-500 hover:text-ink px-3 py-1.5 rounded-xl bg-gray-50 border border-gray-200"
@@ -910,12 +954,12 @@ export default function AdminPortalPage() {
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-extrabold text-gray-400 uppercase tracking-wider">Total Sales</span>
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800 flex items-center gap-0.5">
-                    <TrendingUp size={10} /> +18.4%
+                    <TrendingUp size={10} /> Live Real
                   </span>
                 </div>
                 <div className="my-3">
-                  <span className="text-3xl font-black text-ink">ETB 148,420</span>
-                  <p className="text-[11px] text-gray-400 mt-0.5">7,421 verified exam purchases</p>
+                  <span className="text-3xl font-black text-ink">ETB {totalVerifiedSales.toLocaleString()}</span>
+                  <p className="text-[11px] text-gray-400 mt-0.5">{totalVerifiedCount} verified purchases</p>
                 </div>
                 <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
                   <div className="h-full bg-[#0B5D3B] rounded-full w-[82%]" />
@@ -949,7 +993,7 @@ export default function AdminPortalPage() {
                   </span>
                 </div>
                 <div className="my-3">
-                  <span className="text-3xl font-black text-ink">12,480</span>
+                  <span className="text-3xl font-black text-ink">{registeredStudents.length}</span>
                   <p className="text-[11px] text-gray-400 mt-0.5">Registered university learners</p>
                 </div>
                 <div className="h-1.5 w-full bg-gray-100 rounded-full overflow-hidden">
@@ -1214,43 +1258,6 @@ export default function AdminPortalPage() {
                     </button>
                   ))}
                 </div>
-
-                {/* Add Demo Pending Deposit Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const testDeposit: PaymentVerification = {
-                      id: `VERIF-${Date.now().toString().slice(-4)}`,
-                      orderId: `DEP-${Date.now().toString().slice(-6)}`,
-                      userId: 'usr-demo',
-                      userName: 'Kidus Yohannes',
-                      userUsername: 'kidus_mech',
-                      userPhone: '+251 92 334 8812',
-                      userEmail: 'kidus.y@astu.edu.et',
-                      userUniversity: 'Adama Science & Technology University',
-                      userDepartment: 'Mechanical Engineering',
-                      paymentMethod: 'telebirr',
-                      amount: 200,
-                      extractedSenderName: 'Kidus Yohannes',
-                      extractedTin: `TB-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-                      extractedAmount: 200,
-                      nameMatch: true,
-                      amountMatch: true,
-                      receiptScreenshot: SAMPLE_RECEIPTS.telebirr,
-                      status: 'pending',
-                      createdAt: 'Just now',
-                      items: [{ id: 'wallet-topup', title: 'Student Wallet Deposit (200 ETB)', price: 200, type: 'deposit' }]
-                    };
-                    const updated = [testDeposit, ...verifications];
-                    setVerifications(updated);
-                    saveVerifications(updated);
-                    toast.success('Generated demo pending deposit of 200 ETB! You can now click "Confirm & Approve" or "Reject".', { icon: '⚡' });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus size={13} />
-                  <span>+ Test Pending Deposit</span>
-                </button>
               </div>
             </div>
 
@@ -2188,47 +2195,263 @@ export default function AdminPortalPage() {
                 </p>
               </div>
               <span className="text-xs font-bold px-3 py-1.5 rounded-xl bg-gray-100 text-gray-600">
-                Total Registered: 12,480
+                Total Registered: {registeredStudents.length}
               </span>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.values(MOCK_STUDENT_PROFILES).map((student) => (
-                <div
-                  key={student.id}
-                  onClick={() => setSelectedStudent(student)}
-                  className="p-5 rounded-3xl bg-[#F8FAFC] border border-gray-200 hover:border-[#0B5D3B] hover:shadow-md transition-all cursor-pointer group space-y-3"
-                >
-                  <div className="flex items-center justify-between">
-                    <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#12202B] to-[#0B5D3B] text-white font-black text-base flex items-center justify-center group-hover:scale-105 transition-transform">
-                      {student.name.charAt(0)}
+            {registeredStudents.length === 0 ? (
+              <div className="py-16 text-center bg-[#F8FAFC] rounded-3xl border border-dashed border-gray-200 space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-gray-100 text-gray-400 mx-auto flex items-center justify-center">
+                  <Users size={24} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-ink text-sm">No Students Registered Yet</h3>
+                  <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                    Tibeb is clean and live. When students register or log in from the campus portal, their accounts will appear here instantly.
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {registeredStudents.map((student: any) => (
+                  <div
+                    key={student.id}
+                    onClick={() => handleOpenStudentProfile(student.id, student.name)}
+                    className="p-5 rounded-3xl bg-[#F8FAFC] border border-gray-200 hover:border-[#0B5D3B] hover:shadow-md transition-all cursor-pointer group space-y-3"
+                  >
+                    <div className="flex items-center justify-between">
+                      <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#12202B] to-[#0B5D3B] text-white font-black text-base flex items-center justify-center group-hover:scale-105 transition-transform">
+                        {student.name ? student.name.charAt(0).toUpperCase() : 'S'}
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                        Active
+                      </span>
                     </div>
-                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
-                      {student.status}
+
+                    <div>
+                      <h3 className="font-extrabold text-ink text-sm group-hover:text-[#0B5D3B] transition-colors">
+                        {student.name}
+                      </h3>
+                      <p className="text-xs text-gray-400 font-semibold">{student.email}</p>
+                      <p className="text-[11px] text-gray-500 mt-1">{student.university || 'University Student'}</p>
+                    </div>
+
+                    <div className="pt-2 border-t border-gray-200/80 flex items-center justify-between text-xs">
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Wallet</span>
+                        <strong className="text-emerald-800">ETB {student.walletBalance ?? 0}</strong>
+                      </div>
+                      <div>
+                        <span className="text-[10px] text-gray-400 block">Department</span>
+                        <strong className="text-ink truncate max-w-[100px] block">{student.department || 'Undergrad'}</strong>
+                      </div>
+                      <ChevronRight size={16} className="text-gray-400 group-hover:text-[#0B5D3B] group-hover:translate-x-1 transition-all" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ========================================================================= */}
+        {/* TAB 6: COUPONS & PROMO MANAGER                                           */}
+        {/* ========================================================================= */}
+        {activeTab === 'coupons' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-black text-ink">Coupons & Promo Codes</h2>
+                    <span className="px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-purple-100 text-purple-800">
+                      Limited User & Time System
                     </span>
                   </div>
-
-                  <div>
-                    <h3 className="font-extrabold text-ink text-sm group-hover:text-[#0B5D3B] transition-colors">
-                      {student.name}
-                    </h3>
-                    <p className="text-xs text-gray-400 font-semibold">@{student.username}</p>
-                    <p className="text-[11px] text-gray-500 mt-1">{student.university}</p>
-                  </div>
-
-                  <div className="pt-2 border-t border-gray-200/80 flex items-center justify-between text-xs">
-                    <div>
-                      <span className="text-[10px] text-gray-400 block">Total Spent</span>
-                      <strong className="text-emerald-800">ETB {student.totalSpent}</strong>
-                    </div>
-                    <div>
-                      <span className="text-[10px] text-gray-400 block">Unlocked</span>
-                      <strong className="text-ink">{student.unlockedCount} Exams</strong>
-                    </div>
-                    <ChevronRight size={16} className="text-gray-400 group-hover:text-[#0B5D3B] group-hover:translate-x-1 transition-all" />
-                  </div>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Create discount promo codes for students at checkout with custom expiration dates and maximum claim limits.
+                  </p>
                 </div>
-              ))}
+                <button
+                  onClick={() => setShowCreateCouponModal(true)}
+                  className="px-5 py-2.5 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-extrabold text-xs shadow-md transition-all flex items-center gap-2 self-start sm:self-auto"
+                >
+                  <Plus size={16} />
+                  Create New Coupon
+                </button>
+              </div>
+
+              {/* Coupon summary cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total Active Coupons</span>
+                  <span className="text-2xl font-black text-ink mt-1 block">
+                    {coupons.filter(c => c.isActive && new Date(c.expiresAt).getTime() > Date.now()).length}
+                  </span>
+                  <span className="text-[10px] text-emerald-600 font-semibold mt-0.5 block">Ready for checkout use</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Total Redemptions</span>
+                  <span className="text-2xl font-black text-ink mt-1 block">
+                    {coupons.reduce((sum, c) => sum + (c.usedCount || 0), 0)}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-semibold mt-0.5 block">By campus students</span>
+                </div>
+                <div className="p-4 rounded-2xl bg-[#F8FAFC] border border-gray-200">
+                  <span className="text-[11px] font-bold text-gray-400 uppercase tracking-wider block">Expired / Depleted</span>
+                  <span className="text-2xl font-black text-ink mt-1 block">
+                    {coupons.filter(c => !c.isActive || new Date(c.expiresAt).getTime() <= Date.now() || (c.maxUses > 0 && c.usedCount >= c.maxUses)).length}
+                  </span>
+                  <span className="text-[10px] text-gray-400 font-semibold mt-0.5 block">Inactive codes</span>
+                </div>
+              </div>
+
+              {/* Coupons List */}
+              {coupons.length === 0 ? (
+                <div className="py-16 text-center bg-[#F8FAFC] rounded-3xl border border-dashed border-gray-200 space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0B5D3B] mx-auto flex items-center justify-center">
+                    <Tag size={26} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-ink text-sm">No Coupons Created Yet</h3>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                      Create limited-user or limited-time promotional codes for campus launches, student discounts, or marketing campaigns.
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => setShowCreateCouponModal(true)}
+                    className="px-4 py-2 rounded-xl bg-ink hover:bg-gray-800 text-white text-xs font-bold transition-all inline-flex items-center gap-1.5"
+                  >
+                    <Plus size={14} /> Create First Coupon
+                  </button>
+                </div>
+              ) : (
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left text-xs">
+                    <thead>
+                      <tr className="border-b border-gray-200 text-gray-400 font-extrabold uppercase text-[10px] tracking-wider">
+                        <th className="pb-3 pl-3">Coupon Code</th>
+                        <th className="pb-3">Discount</th>
+                        <th className="pb-3">Claim Limit (Users)</th>
+                        <th className="pb-3">Expiry Time</th>
+                        <th className="pb-3">Status</th>
+                        <th className="pb-3 pr-3 text-right">Actions</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-100">
+                      {coupons.map((coupon) => {
+                        const isExpired = new Date(coupon.expiresAt).getTime() <= Date.now();
+                        const isExhausted = coupon.maxUses > 0 && coupon.usedCount >= coupon.maxUses;
+                        const isUsable = coupon.isActive && !isExpired && !isExhausted;
+
+                        return (
+                          <tr key={coupon.id} className="hover:bg-gray-50/80 transition-colors">
+                            <td className="py-4 pl-3">
+                              <div className="flex items-center gap-2">
+                                <span className="font-mono font-black text-sm text-ink bg-gray-100 px-2.5 py-1 rounded-lg border border-gray-200">
+                                  {coupon.code}
+                                </span>
+                                <button
+                                  onClick={() => {
+                                    navigator.clipboard.writeText(coupon.code);
+                                    toast.success(`Copied "${coupon.code}" to clipboard!`);
+                                  }}
+                                  className="text-gray-400 hover:text-ink p-1 rounded"
+                                  title="Copy Code"
+                                >
+                                  <Copy size={13} />
+                                </button>
+                              </div>
+                              {coupon.description && (
+                                <p className="text-[11px] text-gray-400 mt-1 max-w-xs">{coupon.description}</p>
+                              )}
+                            </td>
+                            <td className="py-4 font-bold text-ink">
+                              <span className="px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-800 font-extrabold">
+                                {coupon.discountType === 'percentage' ? `${coupon.discountValue}% OFF` : `${coupon.discountValue} ETB OFF`}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              <div className="font-semibold text-ink">
+                                {coupon.usedCount} / {coupon.maxUses > 0 ? coupon.maxUses : 'Unlimited'}
+                              </div>
+                              <div className="w-24 h-1.5 bg-gray-100 rounded-full mt-1 overflow-hidden">
+                                <div
+                                  className={`h-full ${isExhausted ? 'bg-rose-500' : 'bg-[#0B5D3B]'}`}
+                                  style={{
+                                    width: coupon.maxUses > 0
+                                      ? `${Math.min(100, (coupon.usedCount / coupon.maxUses) * 100)}%`
+                                      : `${coupon.usedCount > 0 ? 100 : 0}%`
+                                  }}
+                                />
+                              </div>
+                            </td>
+                            <td className="py-4">
+                              <div className="flex items-center gap-1.5 text-gray-600 font-medium">
+                                <Calendar size={13} className="text-gray-400" />
+                                <span>{new Date(coupon.expiresAt).toLocaleString('en-US', { dateStyle: 'medium', timeStyle: 'short' })}</span>
+                              </div>
+                              <span className={`text-[10px] font-bold ${isExpired ? 'text-rose-600' : 'text-emerald-700'}`}>
+                                {isExpired ? 'Expired' : 'Valid'}
+                              </span>
+                            </td>
+                            <td className="py-4">
+                              {isUsable ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                                  Active
+                                </span>
+                              ) : isExpired ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-rose-100 text-rose-800">
+                                  Expired
+                                </span>
+                              ) : isExhausted ? (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-800">
+                                  Claimed Out
+                                </span>
+                              ) : (
+                                <span className="px-2.5 py-1 rounded-full text-[10px] font-black uppercase bg-gray-100 text-gray-500">
+                                  Paused
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-4 pr-3 text-right">
+                              <div className="flex items-center justify-end gap-1.5">
+                                <button
+                                  onClick={() => {
+                                    toggleCouponStatus(coupon.id);
+                                    loadCoupons();
+                                    toast.success(`Coupon "${coupon.code}" status toggled`);
+                                  }}
+                                  className={`px-2.5 py-1 rounded-lg text-[11px] font-bold transition-colors ${
+                                    coupon.isActive
+                                      ? 'bg-amber-50 text-amber-800 hover:bg-amber-100'
+                                      : 'bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
+                                  }`}
+                                >
+                                  {coupon.isActive ? 'Pause' : 'Activate'}
+                                </button>
+                                <button
+                                  onClick={() => {
+                                    if (confirm(`Delete coupon "${coupon.code}"?`)) {
+                                      deleteCoupon(coupon.id);
+                                      loadCoupons();
+                                      toast.success(`Coupon "${coupon.code}" deleted`);
+                                    }
+                                  }}
+                                  className="p-1.5 rounded-lg text-gray-400 hover:text-rose-600 hover:bg-rose-50 transition-colors"
+                                  title="Delete Coupon"
+                                >
+                                  <Trash2 size={15} />
+                                </button>
+                              </div>
+                            </td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -2820,43 +3043,6 @@ export default function AdminPortalPage() {
                       </div>
                     ))}
                 </div>
-
-                {/* Add Demo Pending Deposit Button */}
-                <button
-                  type="button"
-                  onClick={() => {
-                    const testDeposit: PaymentVerification = {
-                      id: `VERIF-${Date.now().toString().slice(-4)}`,
-                      orderId: `DEP-${Date.now().toString().slice(-6)}`,
-                      userId: 'usr-demo',
-                      userName: 'Kidus Yohannes',
-                      userUsername: 'kidus_mech',
-                      userPhone: '+251 92 334 8812',
-                      userEmail: 'kidus.y@astu.edu.et',
-                      userUniversity: 'Adama Science & Technology University',
-                      userDepartment: 'Mechanical Engineering',
-                      paymentMethod: 'telebirr',
-                      amount: 200,
-                      extractedSenderName: 'Kidus Yohannes',
-                      extractedTin: `TB-${Math.floor(1000000000 + Math.random() * 9000000000)}`,
-                      extractedAmount: 200,
-                      nameMatch: true,
-                      amountMatch: true,
-                      receiptScreenshot: SAMPLE_RECEIPTS.telebirr,
-                      status: 'pending',
-                      createdAt: 'Just now',
-                      items: [{ id: 'wallet-topup', title: 'Student Wallet Deposit (200 ETB)', price: 200, type: 'deposit' }]
-                    };
-                    const updated = [testDeposit, ...verifications];
-                    setVerifications(updated);
-                    saveVerifications(updated);
-                    toast.success('Generated demo pending deposit of 200 ETB! You can now click "Confirm & Approve" or "Reject".', { icon: '⚡' });
-                  }}
-                  className="px-3 py-1.5 rounded-xl bg-emerald-700 hover:bg-emerald-800 text-white font-bold text-xs transition-colors shadow-sm flex items-center gap-1 cursor-pointer"
-                >
-                  <Plus size={13} />
-                  <span>+ Test Pending Deposit</span>
-                </button>
               </div>
             </div>
 
@@ -2983,6 +3169,182 @@ export default function AdminPortalPage() {
             >
               <X size={20} />
             </button>
+          </div>
+        </div>
+      )}
+
+      {/* ========================================================================= */}
+      {/* MODAL 4: CREATE COUPON (LIMITED USERS & LIMITED TIME)                     */}
+      {/* ========================================================================= */}
+      {showCreateCouponModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-lg w-full p-6 sm:p-8 space-y-5 shadow-2xl animate-in zoom-in-95 border border-gray-100 max-h-[90vh] overflow-y-auto">
+            <div className="flex items-center justify-between pb-3 border-b border-gray-100">
+              <div className="flex items-center gap-2">
+                <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center">
+                  <Tag size={20} />
+                </div>
+                <div>
+                  <h3 className="font-black text-ink text-base">Create Discount Coupon</h3>
+                  <p className="text-[11px] text-gray-400">Set code, discount, user usage limit & expiration</p>
+                </div>
+              </div>
+              <button
+                onClick={() => setShowCreateCouponModal(false)}
+                className="p-2 text-gray-400 hover:text-ink rounded-full hover:bg-gray-100 transition-colors"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (!newCouponCode.trim()) {
+                  toast.error('Please enter a coupon code (e.g. WELCOME50)');
+                  return;
+                }
+                if (!newCouponExpiry) {
+                  toast.error('Please specify an expiration date & time');
+                  return;
+                }
+                createCoupon({
+                  code: newCouponCode.trim().toUpperCase(),
+                  discountType: newCouponType,
+                  discountValue: newCouponValue,
+                  maxUses: newCouponMaxUses,
+                  expiresAt: new Date(newCouponExpiry).toISOString(),
+                  description: newCouponDesc.trim(),
+                  minOrderAmount: newCouponMinOrder,
+                });
+                loadCoupons();
+                setShowCreateCouponModal(false);
+                setNewCouponCode('');
+                setNewCouponDesc('');
+                toast.success('Coupon created successfully! Active for checkout.', { icon: '🎉' });
+              }}
+              className="space-y-4 text-xs"
+            >
+              <div>
+                <label className="block font-extrabold text-gray-700 mb-1">Coupon Promo Code</label>
+                <input
+                  type="text"
+                  required
+                  value={newCouponCode}
+                  onChange={(e) => setNewCouponCode(e.target.value.toUpperCase())}
+                  placeholder="e.g. WELCOME50, TIBEB10, FIRSTBATCH"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 uppercase font-mono font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B] tracking-wider"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">Students type this code at checkout to unlock their discount.</span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block font-extrabold text-gray-700 mb-1">Discount Type</label>
+                  <select
+                    value={newCouponType}
+                    onChange={(e) => setNewCouponType(e.target.value as 'percentage' | 'fixed')}
+                    className="w-full px-3 py-3 rounded-xl border border-gray-200 font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                  >
+                    <option value="percentage">Percentage (% OFF)</option>
+                    <option value="fixed">Fixed Amount (ETB OFF)</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="block font-extrabold text-gray-700 mb-1">
+                    Discount Value {newCouponType === 'percentage' ? '(%)' : '(ETB)'}
+                  </label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={newCouponType === 'percentage' ? 100 : 1000}
+                    required
+                    value={newCouponValue}
+                    onChange={(e) => setNewCouponValue(Number(e.target.value))}
+                    className="w-full px-3 py-3 rounded-xl border border-gray-200 font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-gray-700 mb-1">
+                  Max Users Allowed (Limited Users)
+                </label>
+                <input
+                  type="number"
+                  min={0}
+                  value={newCouponMaxUses}
+                  onChange={(e) => setNewCouponMaxUses(Number(e.target.value))}
+                  placeholder="e.g. 50 (0 for unlimited)"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                />
+                <span className="text-[10px] text-gray-400 mt-1 block">
+                  E.g. &quot;50&quot; means only the first 50 unique students can claim this coupon. Set 0 for unlimited.
+                </span>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-gray-700 mb-1">
+                  Expiration Date & Time (Limited Time)
+                </label>
+                <input
+                  type="datetime-local"
+                  required
+                  value={newCouponExpiry}
+                  onChange={(e) => setNewCouponExpiry(e.target.value)}
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 font-bold text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                />
+                <div className="flex items-center gap-2 mt-2">
+                  <span className="text-[10px] text-gray-400 font-bold">Quick Presets:</span>
+                  {[
+                    { label: '+24 Hours', hours: 24 },
+                    { label: '+3 Days', hours: 72 },
+                    { label: '+7 Days', hours: 168 },
+                    { label: '+30 Days', hours: 720 },
+                  ].map((preset) => (
+                    <button
+                      type="button"
+                      key={preset.label}
+                      onClick={() => {
+                        const d = new Date(Date.now() + preset.hours * 60 * 60 * 1000);
+                        const localIso = new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+                        setNewCouponExpiry(localIso);
+                      }}
+                      className="px-2 py-0.5 rounded-lg bg-gray-100 hover:bg-gray-200 text-gray-700 text-[10px] font-bold transition-colors"
+                    >
+                      {preset.label}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div>
+                <label className="block font-extrabold text-gray-700 mb-1">Description / Campaign Purpose (Optional)</label>
+                <input
+                  type="text"
+                  value={newCouponDesc}
+                  onChange={(e) => setNewCouponDesc(e.target.value)}
+                  placeholder="e.g. 50% discount for first 50 AAU freshmen"
+                  className="w-full px-4 py-3 rounded-xl border border-gray-200 font-medium text-ink focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
+                />
+              </div>
+
+              <div className="pt-3 border-t border-gray-100 flex items-center justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={() => setShowCreateCouponModal(false)}
+                  className="px-4 py-2.5 rounded-xl border border-gray-200 text-xs font-bold text-gray-600 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-6 py-2.5 rounded-xl bg-[#0B5D3B] hover:bg-emerald-800 text-white text-xs font-black shadow-md transition-all flex items-center gap-1.5"
+                >
+                  <Plus size={15} /> Save & Activate Coupon
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

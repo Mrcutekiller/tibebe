@@ -285,29 +285,8 @@ export const COURSE_COMPETITION_QUIZZES: CourseQuizChallenge[] = [
   },
 ];
 
-// Top Ethiopian University Leaderboard Competitors (20 Real Competitive Slots)
-const INITIAL_LEADERBOARD_ENTRIES: StudentLeaderboardEntry[] = [
-  { id: 'lead-1', name: 'Natnael Girma', university: 'AAU', department: 'Software Engineering', points: 1420, quizzesCompleted: 14, testsPurchased: 12, hasTelegramPremium: true, lastActive: '2m ago' },
-  { id: 'lead-2', name: 'Blen Tesfaye', university: 'AAU', department: 'Medicine & Health', points: 1280, quizzesCompleted: 12, testsPurchased: 10, hasTelegramPremium: true, lastActive: '5m ago' },
-  { id: 'lead-3', name: 'Kidus Yohannes', university: 'ASTU', department: 'Mechanical Engineering', points: 1150, quizzesCompleted: 10, testsPurchased: 8, hasTelegramPremium: true, lastActive: '12m ago' },
-  { id: 'lead-4', name: 'Selamawit Bekele', university: 'Unity', department: 'Accounting & Finance', points: 980, quizzesCompleted: 9, testsPurchased: 7, hasTelegramPremium: true, lastActive: '18m ago' },
-  { id: 'lead-5', name: 'Yared Haile', university: 'AAU', department: 'Civil Engineering', points: 890, quizzesCompleted: 8, testsPurchased: 6, hasTelegramPremium: false, lastActive: '25m ago' },
-  { id: 'lead-6', name: 'Tsion Alemu', university: 'Hawassa', department: 'Computer Science', points: 820, quizzesCompleted: 7, testsPurchased: 5, hasTelegramPremium: true, lastActive: '34m ago' },
-  { id: 'lead-7', name: 'Mekdelawit Desta', university: 'Jimma', department: 'Pharmacy', points: 760, quizzesCompleted: 6, testsPurchased: 5, hasTelegramPremium: false, lastActive: '41m ago' },
-  { id: 'lead-8', name: 'Henok Melaku', university: 'ASTU', department: 'Electrical Engineering', points: 710, quizzesCompleted: 7, testsPurchased: 4, hasTelegramPremium: false, lastActive: '1h ago' },
-  { id: 'lead-9', name: 'Eden Berhanu', university: 'AAU', department: 'Economics', points: 670, quizzesCompleted: 5, testsPurchased: 4, hasTelegramPremium: true, lastActive: '1h ago' },
-  { id: 'lead-10', name: 'Eyob Kebede', university: 'Unity', department: 'Marketing Management', points: 620, quizzesCompleted: 6, testsPurchased: 3, hasTelegramPremium: false, lastActive: '2h ago' },
-  { id: 'lead-11', name: 'Rahel Fekadu', university: 'AAU', department: 'Architecture', points: 580, quizzesCompleted: 5, testsPurchased: 3, hasTelegramPremium: false, lastActive: '2h ago' },
-  { id: 'lead-12', name: 'Dawit Mengistu', university: 'AAU', department: 'Civil Engineering', points: 540, quizzesCompleted: 4, testsPurchased: 3, hasTelegramPremium: false, lastActive: '3h ago' },
-  { id: 'lead-13', name: 'Saron Worku', university: 'ASTU', department: 'Chemical Engineering', points: 510, quizzesCompleted: 4, testsPurchased: 2, hasTelegramPremium: true, lastActive: '3h ago' },
-  { id: 'lead-14', name: 'Kalkidan Bekele', university: 'AAU', department: 'Mathematics', points: 480, quizzesCompleted: 4, testsPurchased: 2, hasTelegramPremium: false, lastActive: '4h ago' },
-  { id: 'lead-15', name: 'Elias Tilahun', university: 'Bahir Dar', department: 'Law', points: 440, quizzesCompleted: 3, testsPurchased: 2, hasTelegramPremium: false, lastActive: '5h ago' },
-  { id: 'lead-16', name: 'Marta Assefa', university: 'Unity', department: 'Management', points: 410, quizzesCompleted: 3, testsPurchased: 2, hasTelegramPremium: false, lastActive: '6h ago' },
-  { id: 'lead-17', name: 'Abel Solomon', university: 'AAU', department: 'Computer Science', points: 380, quizzesCompleted: 3, testsPurchased: 1, hasTelegramPremium: false, lastActive: '7h ago' },
-  { id: 'lead-18', name: 'Bethelhem Negash', university: 'Hawassa', department: 'Nursing', points: 350, quizzesCompleted: 2, testsPurchased: 2, hasTelegramPremium: false, lastActive: '8h ago' },
-  { id: 'lead-19', name: 'Surafel Wolde', university: 'Jimma', department: 'Biomedical Engineering', points: 320, quizzesCompleted: 2, testsPurchased: 1, hasTelegramPremium: false, lastActive: '9h ago' },
-  { id: 'lead-20', name: 'Lidya Zewdu', university: 'AAU', department: 'Journalism & Comms', points: 290, quizzesCompleted: 2, testsPurchased: 1, hasTelegramPremium: false, lastActive: '10h ago' },
-];
+// Starts clean from 0 with real competitive student rankings
+const INITIAL_LEADERBOARD_ENTRIES: StudentLeaderboardEntry[] = [];
 
 const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_leaderboard';
 const STUDENT_POINTS_STORAGE_KEY = 'tibeb_student_points';
@@ -405,28 +384,33 @@ export function getLeaderboardData(currentStudent?: {
   const studentName = currentStudent?.name || 'You (Tibeb Student)';
   const userPoints = getStudentPoints(studentId);
 
-  // Upsert current student into the comprehensive ranking array
-  let existingIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
-  if (existingIndex >= 0) {
-    storedBoard[existingIndex].points = Math.max(storedBoard[existingIndex].points, userPoints);
-    storedBoard[existingIndex].name = studentName;
-    if (currentStudent?.university) storedBoard[existingIndex].university = currentStudent.university;
-    if (currentStudent?.department) storedBoard[existingIndex].department = currentStudent.department;
-    if (currentStudent?.avatar_url) storedBoard[existingIndex].avatar = currentStudent.avatar_url;
-  } else {
-    storedBoard.push({
-      id: studentId,
-      name: studentName,
-      university: currentStudent?.university || 'AAU',
-      department: currentStudent?.department || 'Engineering',
-      points: userPoints,
-      avatar: currentStudent?.avatar_url,
-      quizzesCompleted: 0,
-      testsPurchased: 0,
-      hasTelegramPremium: false,
-      lastActive: 'Just now',
-    });
+  // Filter out any 0-point entries unless active student has earned points
+  if (userPoints > 0) {
+    let existingIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
+    if (existingIndex >= 0) {
+      storedBoard[existingIndex].points = Math.max(storedBoard[existingIndex].points, userPoints);
+      storedBoard[existingIndex].name = studentName;
+      if (currentStudent?.university) storedBoard[existingIndex].university = currentStudent.university;
+      if (currentStudent?.department) storedBoard[existingIndex].department = currentStudent.department;
+      if (currentStudent?.avatar_url) storedBoard[existingIndex].avatar = currentStudent.avatar_url;
+    } else {
+      storedBoard.push({
+        id: studentId,
+        name: studentName,
+        university: currentStudent?.university || 'AAU',
+        department: currentStudent?.department || 'Engineering',
+        points: userPoints,
+        avatar: currentStudent?.avatar_url,
+        quizzesCompleted: 1,
+        testsPurchased: 0,
+        hasTelegramPremium: false,
+        lastActive: 'Just now',
+      });
+    }
   }
+
+  // Keep only real competitors with points
+  storedBoard = storedBoard.filter(e => e.points > 0);
 
   // Sort strictly descending by total points
   storedBoard.sort((a, b) => b.points - a.points);
@@ -437,8 +421,8 @@ export function getLeaderboardData(currentStudent?: {
   });
 
   const userRankIndex = storedBoard.findIndex((e) => e.id === studentId || e.name === studentName);
-  const userRank = userRankIndex >= 0 ? userRankIndex + 1 : storedBoard.length;
-  const currentUserEntry = storedBoard[userRankIndex] || {
+  const userRank = userRankIndex >= 0 ? userRankIndex + 1 : (storedBoard.length + 1);
+  const currentUserEntry: StudentLeaderboardEntry = (userRankIndex >= 0 ? storedBoard[userRankIndex] : null) || {
     id: studentId,
     name: studentName,
     university: currentStudent?.university || 'AAU',
@@ -453,10 +437,10 @@ export function getLeaderboardData(currentStudent?: {
 
   // Only take top 20 users for the main visible leaderboard
   const top20 = storedBoard.slice(0, 20);
-  const isUserInTop20 = userRank <= 20;
+  const isUserInTop20 = userPoints > 0 ? userRank <= 20 : false;
 
   // Compute points needed to overtake the 20th place
-  const threshold20Points = top20[19]?.points || 290;
+  const threshold20Points = top20[19]?.points || 50;
   const pointsToTop20 = Math.max(0, threshold20Points - userPoints + 10);
 
   const seasonMonth = new Date().toLocaleDateString('en-US', {

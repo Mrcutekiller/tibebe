@@ -5,25 +5,58 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import {
   X, ShoppingBag, Trash2, Zap, ArrowRight, CheckCircle,
-  Plus, CreditCard, ShieldCheck, Sparkles, BookOpen
+  Plus, CreditCard, ShieldCheck, Sparkles, BookOpen, Tag
 } from 'lucide-react';
 import { useCart } from '@/context/CartContext';
 import { useAuth } from '@/context/AuthContext';
+import { validateCoupon, recordCouponUsage } from '@/lib/coupon-store';
 import toast from 'react-hot-toast';
 
 export default function CartDrawer() {
   const router = useRouter();
   const { cart, removeFromCart, clearCart, cartTotal, isCartOpen, setIsCartOpen } = useCart();
-  const { walletBalance, payWithWallet, topUpWallet } = useAuth();
+  const { user, walletBalance, payWithWallet, topUpWallet } = useAuth();
   const [isProcessing, setIsProcessing] = useState(false);
   const [showTopUpModal, setShowTopUpModal] = useState(false);
   const [topUpAmount, setTopUpAmount] = useState(100);
 
+  const [couponCode, setCouponCode] = useState('');
+  const [appliedCoupon, setAppliedCoupon] = useState<{ code: string; discount: number; label: string } | null>(null);
+
   if (!isCartOpen) return null;
+
+  const finalTotal = Math.max(0, cartTotal - (appliedCoupon ? appliedCoupon.discount : 0));
+
+  const handleApplyCoupon = () => {
+    if (!couponCode.trim()) {
+      toast.error('Please enter a coupon code');
+      return;
+    }
+    const res = validateCoupon(couponCode, cartTotal, user?.id);
+    if (res.valid && res.coupon) {
+      setAppliedCoupon({
+        code: res.coupon.code,
+        discount: res.discountAmount,
+        label: res.coupon.discountType === 'percentage'
+          ? `${res.coupon.discountValue}% OFF`
+          : `${res.coupon.discountValue} ETB OFF`
+      });
+      toast.success(`Coupon "${res.coupon.code}" applied!`);
+    } else {
+      setAppliedCoupon(null);
+      toast.error(res.error || 'Invalid or expired coupon code');
+    }
+  };
+
+  const handleRemoveCoupon = () => {
+    setCouponCode('');
+    setAppliedCoupon(null);
+    toast.success('Coupon removed');
+  };
 
   const handleWalletCheckout = async () => {
     if (cart.length === 0) return;
-    if (walletBalance < cartTotal) {
+    if (walletBalance < finalTotal) {
       toast.error('Insufficient wallet balance. Top up your wallet or pay with Telebirr.');
       return;
     }
@@ -31,9 +64,12 @@ export default function CartDrawer() {
     setIsProcessing(true);
     try {
       const itemIds = cart.map(i => i.id);
-      const success = payWithWallet(cartTotal, itemIds);
+      const success = payWithWallet(finalTotal, itemIds);
 
       if (success) {
+        if (appliedCoupon && user) {
+          recordCouponUsage(appliedCoupon.code, user.id);
+        }
         toast.success(`🎉 Unlocked ${cart.length} item${cart.length > 1 ? 's' : ''} instantly from your wallet!`, {
           duration: 4000,
         });
@@ -189,11 +225,55 @@ export default function CartDrawer() {
                 </button>
               </div>
 
+              {/* Coupon Code Input */}
+              <div className="pt-1">
+                {appliedCoupon ? (
+                  <div className="p-2.5 rounded-xl bg-emerald-50 border border-emerald-200 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Tag size={14} className="text-emerald-700" />
+                      <span className="font-mono font-bold text-xs text-emerald-800 uppercase">
+                        {appliedCoupon.code}
+                      </span>
+                      <span className="text-[10px] font-extrabold text-emerald-600 bg-emerald-100 px-1.5 py-0.5 rounded">
+                        -{appliedCoupon.discount} ETB ({appliedCoupon.label})
+                      </span>
+                    </div>
+                    <button
+                      onClick={handleRemoveCoupon}
+                      className="text-xs font-bold text-rose-600 hover:underline"
+                    >
+                      Remove
+                    </button>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5">
+                    <input
+                      type="text"
+                      value={couponCode}
+                      onChange={(e) => setCouponCode(e.target.value.toUpperCase())}
+                      placeholder="Enter promo coupon code"
+                      className="flex-1 px-3 py-2 rounded-xl border border-gray-200 text-xs uppercase font-mono font-bold text-ink focus:outline-none focus:ring-1 focus:ring-green tracking-wider placeholder:normal-case placeholder:font-sans"
+                    />
+                    <button
+                      onClick={handleApplyCoupon}
+                      className="px-3 py-2 rounded-xl bg-ink hover:bg-gray-800 text-white font-extrabold text-xs transition-colors"
+                    >
+                      Apply
+                    </button>
+                  </div>
+                )}
+              </div>
+
               {/* Total Summary */}
               <div className="flex items-baseline justify-between pt-1">
                 <div>
                   <span className="text-xs text-gray-400 block font-medium">Total Amount ({cart.length} items)</span>
-                  <span className="text-2xl font-black text-ink">{cartTotal} ETB</span>
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-2xl font-black text-ink">{finalTotal} ETB</span>
+                    {appliedCoupon && appliedCoupon.discount > 0 && (
+                      <span className="text-xs text-gray-400 line-through font-bold">{cartTotal} ETB</span>
+                    )}
+                  </div>
                 </div>
                 <div className="text-right">
                   <span className="text-[10px] text-emerald-700 font-bold bg-emerald-50 px-2 py-0.5 rounded-full inline-block">
@@ -207,19 +287,19 @@ export default function CartDrawer() {
                 {/* 1-Click Wallet Checkout (FASTEST) */}
                 <button
                   onClick={handleWalletCheckout}
-                  disabled={isProcessing || walletBalance < cartTotal}
+                  disabled={isProcessing || walletBalance < finalTotal}
                   className={`w-full py-3.5 px-4 rounded-2xl font-black text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all active:scale-95 ${
-                    walletBalance >= cartTotal
+                    walletBalance >= finalTotal
                       ? 'bg-green hover:bg-green-dark text-white cursor-pointer shadow-green/30'
                       : 'bg-gray-200 text-gray-400 cursor-not-allowed'
                   }`}
                 >
-                  <Zap size={15} className={walletBalance >= cartTotal ? 'text-gold fill-gold' : ''} />
+                  <Zap size={15} className={walletBalance >= finalTotal ? 'text-gold fill-gold' : ''} />
                   {isProcessing
                     ? 'Unlocking...'
-                    : walletBalance >= cartTotal
-                    ? `1-Click Wallet Pay (${cartTotal} ETB)`
-                    : `Wallet Balance Low (Need ${cartTotal - walletBalance} ETB)`}
+                    : walletBalance >= finalTotal
+                    ? `1-Click Wallet Pay (${finalTotal} ETB)`
+                    : `Wallet Balance Low (Need ${finalTotal - walletBalance} ETB)`}
                 </button>
 
                 {/* Direct Live Telebirr / Chapa Pay */}
