@@ -2,7 +2,7 @@
 
 import { finalizeCurrentMonthManually } from '@/lib/competition-store';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
 import {
   TrendingUp, Users, ShoppingBag, Trophy, MessageSquare, Plus,
@@ -13,7 +13,7 @@ import {
   CheckCircle2, XCircle, AlertTriangle, Sparkles, Bot,
   FileCheck, ExternalLink, Calendar, HelpCircle, Layers,
   X, Info, Phone, Mail, Award, Check, UserCheck, ChevronDown, RotateCw, Save,
-  Upload, UploadCloud, BookOpen, Tag, Trash2, Ticket, Copy
+  Upload, UploadCloud, BookOpen, Tag, Trash2, Ticket, Copy, Gift
 } from 'lucide-react';
 import { UNIVERSITIES, EXAMS, type Exam } from '@/lib/seed-data';
 import { useAuth } from '@/context/AuthContext';
@@ -47,9 +47,11 @@ import {
   approveWithdrawal,
   rejectWithdrawal
 } from '@/lib/withdrawal-store';
+import { supabase } from '@/lib/supabase';
 import { addNotification } from '@/lib/notification-store';
+import { getReferralsList, getStudentReferralCode, type ReferralRecord } from '@/lib/referral-store';
 
-type AdminTab = 'overview' | 'verifications' | 'withdrawals' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
+type AdminTab = 'overview' | 'verifications' | 'withdrawals' | 'referrals' | 'ai' | 'exams' | 'students' | 'coupons' | 'support' | 'profile';
 
 interface SupportTicket {
   id: string;
@@ -176,6 +178,11 @@ export default function AdminPortalPage() {
   const [selectedStudent, setSelectedStudent] = useState<StudentProfileDetail | null>(null);
   const [registeredStudents, setRegisteredStudents] = useState<any[]>([]);
 
+  // Student Referrals State
+  const [allReferrals, setAllReferrals] = useState<ReferralRecord[]>([]);
+  const [expandedPromoterId, setExpandedPromoterId] = useState<string | null>(null);
+  const [referralSearchQuery, setReferralSearchQuery] = useState('');
+
   // Coupons State
   const [coupons, setCoupons] = useState<Coupon[]>([]);
 
@@ -227,7 +234,108 @@ export default function AdminPortalPage() {
       const raw = localStorage.getItem('tibeb_registered_users');
       if (raw) setRegisteredStudents(JSON.parse(raw));
     } catch {}
+
+    try {
+      const rawRefs = localStorage.getItem('tibeb_referrals_list');
+      if (rawRefs) setAllReferrals(JSON.parse(rawRefs));
+    } catch {}
+
+    // Also fetch referrals from Supabase if connected
+    supabase
+      .from('referrals')
+      .select('*')
+      .then(({ data }) => {
+        if (data && data.length > 0) {
+          setAllReferrals(data.map((r: any) => ({
+            id: r.id,
+            referrerId: r.referrer_id,
+            referredUserId: r.referred_user_id,
+            referredUserName: r.referred_user_name || 'Classmate',
+            referredUserUniversity: r.referred_user_university,
+            referredUserDepartment: r.referred_user_department,
+            status: r.status,
+            rewardAmount: Number(r.reward_amount) || 5,
+            registeredAt: r.created_at,
+            completedAt: r.completed_at,
+          })));
+        }
+      });
   }, [activeTab]);
+
+  // Compute strictly only students who have invited at least 1 person or have referral balance
+  const referralPromoters = useMemo(() => {
+    const map = new Map<string, {
+      id: string;
+      name: string;
+      phone: string;
+      email: string;
+      university: string;
+      department: string;
+      referralCode: string;
+      referralBalance: number;
+      totalInvited: number;
+      completedCount: number;
+      pendingCount: number;
+      invitedFriends: ReferralRecord[];
+    }>();
+
+    registeredStudents.forEach((student: any) => {
+      const code = student.referral_code || getStudentReferralCode(student);
+      const friends = allReferrals.filter(
+        (r: ReferralRecord) => r.referrerId === student.id || r.referrerId === `referrer-${code}` || r.referrerId === code
+      );
+      const bal = Number(student.referral_wallet_balance || student.referralWalletBalance || 0);
+
+      // STRICT RULE: ONLY include if they have actually invited at least 1 classmate or have a referral balance!
+      if (friends.length > 0 || bal > 0) {
+        map.set(student.id || student.email || code, {
+          id: student.id || code,
+          name: student.name || 'Tibeb Student',
+          phone: student.phone || '—',
+          email: student.email || '—',
+          university: student.university || 'AAU',
+          department: student.department || 'General',
+          referralCode: code,
+          referralBalance: bal,
+          totalInvited: friends.length,
+          completedCount: friends.filter((f: ReferralRecord) => f.status === 'completed').length,
+          pendingCount: friends.filter((f: ReferralRecord) => f.status === 'pending').length,
+          invitedFriends: friends,
+        });
+      }
+    });
+
+    // Also include any referrers recorded directly in referrals who might not yet be in registeredStudents
+    allReferrals.forEach((ref: ReferralRecord) => {
+      let found = false;
+      for (const promoter of map.values()) {
+        if (promoter.id === ref.referrerId || promoter.referralCode === ref.referrerId || `referrer-${promoter.referralCode}` === ref.referrerId) {
+          found = true;
+          break;
+        }
+      }
+      if (!found) {
+        const promoterKey = ref.referrerId;
+        const matchingFriends = allReferrals.filter((r: ReferralRecord) => r.referrerId === promoterKey);
+        map.set(promoterKey, {
+          id: promoterKey,
+          name: `Promoter (${promoterKey.replace('referrer-', '')})`,
+          phone: '—',
+          email: '—',
+          university: 'Tibeb Promoter',
+          department: 'Promoter',
+          referralCode: promoterKey.replace('referrer-', ''),
+          referralBalance: matchingFriends.filter((f: ReferralRecord) => f.status === 'completed').length * 5,
+          totalInvited: matchingFriends.length,
+          completedCount: matchingFriends.filter((f: ReferralRecord) => f.status === 'completed').length,
+          pendingCount: matchingFriends.filter((f: ReferralRecord) => f.status === 'pending').length,
+          invitedFriends: matchingFriends,
+        });
+      }
+    });
+
+    return Array.from(map.values()).sort((a, b) => b.totalInvited - a.totalInvited);
+  }, [registeredStudents, allReferrals]);
 
   // Post Exam Form State
   const [examUni, setExamUni] = useState<string>('aau');
@@ -1140,6 +1248,12 @@ export default function AdminPortalPage() {
                 icon: ArrowUpRight,
                 label: 'Withdrawals',
                 badge: pendingWithdrawalsCount > 0 ? pendingWithdrawalsCount : undefined
+              },
+              {
+                id: 'referrals' as AdminTab,
+                icon: Gift,
+                label: 'Referrals',
+                badge: referralPromoters.length > 0 ? referralPromoters.length : undefined
               },
               { id: 'ai' as AdminTab, icon: Sparkles, label: 'AI Hub', isNew: true },
               { id: 'exams' as AdminTab, icon: FileText, label: 'Exams' },
@@ -2743,6 +2857,210 @@ export default function AdminPortalPage() {
             )}
           </div>
         )}
+
+        {/* ========================================================================= */}
+        {/* TAB: STUDENT REFERRALS & PROMOTERS (ONLY USERS WHO INVITED OTHERS)        */}
+        {/* ========================================================================= */}
+        {activeTab === 'referrals' && (
+          <div className="space-y-6">
+            <div className="bg-white rounded-3xl p-6 md:p-8 shadow-sm border border-gray-100 space-y-6">
+              {/* Header with Search */}
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <div className="w-9 h-9 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black">
+                      <Gift size={18} />
+                    </div>
+                    <h2 className="text-xl font-black text-ink">Student Referrals & Campus Promoters</h2>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Displaying <strong>only students who have actively invited classmates</strong>. Shows referral codes, total invites, completed test unlocks, and current referral wallet balances.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <div className="relative">
+                    <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <input
+                      type="text"
+                      placeholder="Search promoter, code, phone..."
+                      value={referralSearchQuery}
+                      onChange={(e) => setReferralSearchQuery(e.target.value)}
+                      className="pl-9 pr-3 py-2 rounded-xl border border-gray-200 text-xs font-medium focus:outline-none focus:border-[#0B5D3B] w-64 bg-slate-50"
+                    />
+                  </div>
+                </div>
+              </div>
+
+              {/* KPI Summary Cards */}
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+                <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
+                  <span className="text-[10px] font-bold text-gray-400 uppercase tracking-wider block">
+                    Active Promoters
+                  </span>
+                  <span className="text-2xl font-black text-ink">{referralPromoters.length}</span>
+                  <span className="text-[10px] text-gray-500 block mt-0.5">Students who invited 1 or more friends</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200">
+                  <span className="text-[10px] font-bold text-amber-800 uppercase tracking-wider block">
+                    Total Classmates Invited
+                  </span>
+                  <span className="text-2xl font-black text-amber-950">
+                    {referralPromoters.reduce((acc: number, p: any) => acc + p.totalInvited, 0)}
+                  </span>
+                  <span className="text-[10px] text-amber-800/80 block mt-0.5">Joined via referral code</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200">
+                  <span className="text-[10px] font-bold text-[#0B5D3B] uppercase tracking-wider block">
+                    Completed (Bought Test)
+                  </span>
+                  <span className="text-2xl font-black text-[#0B5D3B]">
+                    {referralPromoters.reduce((acc: number, p: any) => acc + p.completedCount, 0)}
+                  </span>
+                  <span className="text-[10px] text-emerald-700 block mt-0.5">+5 ETB Rewarded per friend</span>
+                </div>
+
+                <div className="p-4 rounded-2xl bg-gradient-to-br from-[#12202B] to-[#0B5D3B] text-white">
+                  <span className="text-[10px] font-bold text-emerald-200 uppercase tracking-wider block">
+                    Referral Wallet Balances
+                  </span>
+                  <span className="text-2xl font-black text-white">
+                    {referralPromoters.reduce((acc: number, p: any) => acc + p.referralBalance, 0)}{' '}
+                    <span className="text-sm text-gold">ETB</span>
+                  </span>
+                  <span className="text-[10px] text-white/70 block mt-0.5">Available for withdrawal/transfer</span>
+                </div>
+              </div>
+
+              {/* Promoters List */}
+              {referralPromoters.length === 0 ? (
+                <div className="py-16 text-center bg-[#F8FAFC] rounded-3xl border border-dashed border-gray-200 space-y-3">
+                  <div className="w-14 h-14 rounded-2xl bg-amber-50 text-amber-800 mx-auto flex items-center justify-center border border-amber-200">
+                    <Gift size={24} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-ink text-sm">No Student Promoters Yet</h3>
+                    <p className="text-xs text-gray-500 max-w-sm mx-auto mt-1">
+                      Students who invite their classmates using their personal referral code will appear here automatically.
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {referralPromoters.map((promoter: any) => {
+                    const isExpanded = expandedPromoterId === promoter.id;
+                    return (
+                      <div
+                        key={promoter.id}
+                        className="rounded-2xl border border-gray-200 bg-white hover:border-[#0B5D3B] transition-all overflow-hidden"
+                      >
+                        {/* Main Promoter Row */}
+                        <div className="p-4 sm:p-5 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                          <div className="flex items-center gap-3.5">
+                            <div className="w-12 h-12 rounded-2xl bg-gradient-to-tr from-[#12202B] to-[#0B5D3B] text-gold font-black text-base flex items-center justify-center shrink-0">
+                              {promoter.name.charAt(0).toUpperCase()}
+                            </div>
+                            <div>
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-black text-sm text-ink">{promoter.name}</h4>
+                                <span className="font-mono text-xs font-black px-2 py-0.5 rounded-md bg-stone-100 text-[#0B5D3B] border border-stone-200">
+                                  {promoter.referralCode}
+                                </span>
+                              </div>
+                              <p className="text-xs text-gray-500">
+                                {promoter.university} • {promoter.department} • Phone: {promoter.phone}
+                              </p>
+                            </div>
+                          </div>
+
+                          {/* Stats and Action */}
+                          <div className="flex items-center justify-between sm:justify-end gap-5 border-t sm:border-t-0 pt-3 sm:pt-0 border-gray-100">
+                            <div className="text-left sm:text-right">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase block">Invited</span>
+                              <span className="text-xs font-black text-ink">
+                                {promoter.totalInvited} Classmate{promoter.totalInvited === 1 ? '' : 's'}
+                              </span>
+                              <span className="text-[10px] text-emerald-700 block font-semibold">
+                                {promoter.completedCount} Unlocked Test ({promoter.completedCount * 5} ETB)
+                              </span>
+                            </div>
+
+                            <div className="text-left sm:text-right">
+                              <span className="text-[10px] text-gray-400 font-bold uppercase block">
+                                Referral Wallet Balance
+                              </span>
+                              <span className="text-sm font-black text-[#0B5D3B]">
+                                {promoter.referralBalance} ETB
+                              </span>
+                            </div>
+
+                            <button
+                              onClick={() => setExpandedPromoterId(isExpanded ? null : promoter.id)}
+                              className="px-3 py-1.5 rounded-xl border border-gray-200 hover:bg-gray-50 text-xs font-bold text-gray-700 transition-colors flex items-center gap-1 cursor-pointer"
+                            >
+                              <span>{isExpanded ? 'Hide' : 'View'} Friends ({promoter.invitedFriends.length})</span>
+                              <ChevronDown size={14} className={cn('transition-transform', isExpanded && 'rotate-180')} />
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Expanded List of Friends Invited by this Student */}
+                        {isExpanded && (
+                          <div className="bg-slate-50/70 p-4 sm:p-5 border-t border-gray-200 space-y-3 animate-in fade-in">
+                            <h5 className="text-xs font-black text-gray-700 uppercase tracking-wider flex items-center gap-1.5">
+                              <Users size={13} className="text-[#0B5D3B]" />
+                              Classmates Invited by {promoter.name} ({promoter.invitedFriends.length})
+                            </h5>
+
+                            {promoter.invitedFriends.length === 0 ? (
+                              <p className="text-xs text-gray-400 italic">No invite details recorded yet.</p>
+                            ) : (
+                              <div className="divide-y divide-gray-200/60 bg-white rounded-2xl border border-gray-200 overflow-hidden">
+                                {promoter.invitedFriends.map((friend: ReferralRecord) => (
+                                  <div
+                                    key={friend.id}
+                                    className="p-3 sm:px-4 flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-xs"
+                                  >
+                                    <div className="flex items-center gap-2.5">
+                                      <div className="w-7 h-7 rounded-xl bg-emerald-100 text-[#0B5D3B] font-bold flex items-center justify-center text-xs shrink-0">
+                                        {friend.referredUserName.charAt(0).toUpperCase()}
+                                      </div>
+                                      <div>
+                                        <span className="font-bold text-ink block">{friend.referredUserName}</span>
+                                        <span className="text-[10px] text-gray-400">
+                                          {friend.referredUserUniversity || 'AAU'} • {friend.referredUserDepartment || 'Student'} • Joined {new Date(friend.registeredAt).toLocaleDateString()}
+                                        </span>
+                                      </div>
+                                    </div>
+
+                                    <div>
+                                      {friend.status === 'completed' ? (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 border border-emerald-300 inline-flex items-center gap-1">
+                                          <CheckCircle2 size={11} /> Unlocked 1st Test (+5 ETB Paid)
+                                        </span>
+                                      ) : (
+                                        <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1">
+                                          <Clock size={11} /> Pending (Needs 1st Test Purchase)
+                                        </span>
+                                      )}
+                                    </div>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
 
         {/* ========================================================================= */}
         {/* TAB 6: COUPONS & PROMO MANAGER                                           */}
