@@ -204,7 +204,9 @@ public class MainActivity extends Activity {
         ws.setDisplayZoomControls(false);
         ws.setMixedContentMode(WebSettings.MIXED_CONTENT_ALWAYS_ALLOW);
         ws.setCacheMode(WebSettings.LOAD_DEFAULT);
-        ws.setUserAgentString(ws.getUserAgentString() + " TibebMobileApp/1.2.0 Android");
+        ws.setRenderPriority(WebSettings.RenderPriority.HIGH);
+        ws.setEnableSmoothTransition(true);
+        ws.setUserAgentString(ws.getUserAgentString() + " TibebMobileApp/1.2.0 Android FastMobile");
 
         webView.addJavascriptInterface(new NativeBridge(), "TibebNative");
 

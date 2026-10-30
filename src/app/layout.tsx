@@ -9,16 +9,18 @@ import { Toaster } from "react-hot-toast";
 
 const poppins = Poppins({
   subsets: ["latin"],
-  weight: ["300", "400", "500", "600", "700", "800", "900"],
+  weight: ["400", "600", "700"],
   variable: "--font-poppins",
   display: "swap",
+  preload: true,
 });
 
 const notoEthiopic = Noto_Sans_Ethiopic({
   subsets: ["ethiopic"],
-  weight: ["300", "400", "500", "600", "700", "800"],
+  weight: ["400", "600", "700"],
   variable: "--font-ethiopic",
   display: "swap",
+  preload: false,
 });
 
 export const viewport: Viewport = {
@@ -72,6 +74,17 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${poppins.variable} ${notoEthiopic.variable}`}>
       <body className={poppins.className}>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js').catch(function(){});
+                });
+              }
+            `,
+          }}
+        />
         <AuthProvider>
           <LanguageProvider>
             <CartProvider>

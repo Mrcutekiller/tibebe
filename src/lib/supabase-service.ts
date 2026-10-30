@@ -5,6 +5,41 @@
 import { supabase, createAdminClient } from './supabase';
 import { University, Exam, Course } from './seed-data';
 
+// Fast in-memory cache for ultra-fast 0ms page loads on slow networks
+const MEM_CACHE: Record<string, { data: any; expiry: number }> = {};
+const DEFAULT_TTL_MS = 60 * 1000; // 1 minute fresh cache
+
+function getCached<T>(key: string): T | null {
+  const item = MEM_CACHE[key];
+  if (item && Date.now() < item.expiry) {
+    return item.data as T;
+  }
+  if (typeof window !== 'undefined') {
+    try {
+      const stored = sessionStorage.getItem(`tibeb_cache_${key}`);
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        if (Date.now() < parsed.expiry) {
+          MEM_CACHE[key] = parsed;
+          return parsed.data as T;
+        }
+      }
+    } catch {}
+  }
+  return null;
+}
+
+function setCached<T>(key: string, data: T, ttlMs: number = DEFAULT_TTL_MS): void {
+  const entry = { data, expiry: Date.now() + ttlMs };
+  MEM_CACHE[key] = entry;
+  if (typeof window !== 'undefined') {
+    try {
+      sessionStorage.setItem(`tibeb_cache_${key}`, JSON.stringify(entry));
+    } catch {}
+  }
+}
+
+
 // System Settings
 export interface PlatformSettings {
   payment_test_mode: boolean;
@@ -16,6 +51,9 @@ export interface PlatformSettings {
 // 1. UNIVERSITIES & DEPARTMENTS
 // ==============================================================================
 export async function getLiveUniversities(): Promise<University[]> {
+  const cached = getCached<University[]>('universities');
+  if (cached) return cached;
+
   try {
     const { data: unis, error } = await supabase
       .from('universities')
@@ -30,7 +68,7 @@ export async function getLiveUniversities(): Promise<University[]> {
       return [];
     }
 
-    return unis.map((u: any) => ({
+    const mapped = unis.map((u: any) => ({
       id: u.id,
       name: u.name,
       short: u.short,
@@ -38,6 +76,8 @@ export async function getLiveUniversities(): Promise<University[]> {
       color: u.color || '#0B5D3B',
       departments: (u.departments || []).map((d: any) => ({ id: d.id, name: d.name })),
     }));
+    setCached('universities', mapped);
+    return mapped;
   } catch (err) {
     console.warn('Error fetching universities from Supabase:', err);
     return [];
@@ -85,6 +125,9 @@ export async function addUniversityToSupabase(uni: University): Promise<boolean>
 // 2. EXAMS & QUESTIONS
 // ==============================================================================
 export async function getLiveExams(): Promise<Exam[]> {
+  const cached = getCached<Exam[]>('exams');
+  if (cached) return cached;
+
   try {
     const { data, error } = await supabase
       .from('exams')
