@@ -248,6 +248,17 @@ export default function CatalogPage() {
             </div>
 
             {/* Grid */}
+            {filteredExams.length === 0 ? (
+              <div className="bg-white rounded-3xl p-12 text-center border border-gray-100 max-w-lg mx-auto space-y-3">
+                <div className="w-14 h-14 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center mx-auto">
+                  <FileText size={28} />
+                </div>
+                <h3 className="font-black text-ink text-lg">No Exam Papers Published Yet</h3>
+                <p className="text-xs text-gray-500">
+                  New verified university exam papers and solutions will appear here as soon as they are uploaded and published by the administration.
+                </p>
+              </div>
+            ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
                 {filteredExams.map((exam) => {
                   const isUnlocked = unlockedItems.includes(exam.id) || exam.is_free_sample;
@@ -338,6 +349,7 @@ export default function CatalogPage() {
                   );
                 })}
               </div>
+            )}
           </div>
         </div>
       </div>

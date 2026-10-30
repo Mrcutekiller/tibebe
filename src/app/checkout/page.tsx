@@ -193,7 +193,7 @@ function CheckoutContent() {
 
     // Simulate OCR & QR decode latency with beam scanner
     setTimeout(() => {
-      const studentName = user?.name || 'Abebe Tadesse';
+      const studentName = user?.name || 'Student';
       const generatedTin =
         paymentMethod === 'cbe'
           ? `FT24${Math.floor(100000000 + Math.random() * 900000000)}`
@@ -256,7 +256,7 @@ function CheckoutContent() {
           extractedAmount: extractedData?.amount || total,
           nameMatch: extractedData?.nameMatched ?? true,
           amountMatch: extractedData?.amountMatched ?? true,
-          receiptScreenshot: uploadedReceipt || SAMPLE_RECEIPTS[paymentMethod],
+          receiptScreenshot: uploadedReceipt || '',
           status: 'approved',
           reviewedBy: 'Tibeb AI Auto-Clearing Engine',
           reviewedAt: 'Instant Auto-Approved',
@@ -527,14 +527,8 @@ function CheckoutContent() {
                         <span className="text-gray-400 block text-[11px]">Account Name:</span>
                         <span className="font-black text-ink text-base">Biruk</span>
                       </div>
-                      <div className="sm:col-span-2 p-2.5 bg-blue-50/50 rounded-xl text-blue-900 text-[11px] flex items-center justify-between">
+                      <div className="sm:col-span-2 p-2.5 bg-blue-50/50 rounded-xl text-blue-900 text-[11px]">
                         <span>Send payment to: <strong>Biruk (099721895)</strong></span>
-                        <button
-                          onClick={() => useSampleReceipt('telebirr')}
-                          className="text-[11px] font-bold text-blue-700 underline hover:text-blue-900 cursor-pointer"
-                        >
-                          Use Demo Receipt
-                        </button>
                       </div>
                     </div>
                   ) : (
@@ -547,14 +541,8 @@ function CheckoutContent() {
                         <span className="text-gray-400 block text-[11px]">Beneficiary Name:</span>
                         <span className="font-black text-ink text-base">Biruk</span>
                       </div>
-                      <div className="sm:col-span-2 p-2.5 bg-purple-50/50 rounded-xl text-purple-900 text-[11px] flex items-center justify-between">
+                      <div className="sm:col-span-2 p-2.5 bg-purple-50/50 rounded-xl text-purple-900 text-[11px]">
                         <span>Bank: <strong>Commercial Bank of Ethiopia (Biruk)</strong></span>
-                        <button
-                          onClick={() => useSampleReceipt('cbe')}
-                          className="text-[11px] font-bold text-purple-700 underline hover:text-purple-900 cursor-pointer"
-                        >
-                          Use Demo Receipt
-                        </button>
                       </div>
                     </div>
                   )}

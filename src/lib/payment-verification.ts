@@ -29,6 +29,7 @@ export interface PaymentVerification {
   amountMatch: boolean;
   receiptScreenshot: string; // Base64 or URL
   status: 'pending' | 'approved' | 'rejected';
+  is_test?: boolean;
   rejectionReason?: string;
   reviewedBy?: string;
   reviewedAt?: string;

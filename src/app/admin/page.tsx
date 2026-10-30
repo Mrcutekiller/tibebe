@@ -100,6 +100,49 @@ export default function AdminPortalPage() {
 
   // Active dock tab
   const [activeTab, setActiveTab] = useState<AdminTab>('overview');
+  const [isTestMode, setIsTestMode] = useState<boolean>(() => {
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('tibeb_payment_test_mode');
+      return saved === null ? true : saved === 'true';
+    }
+    return true;
+  });
+
+  const handleToggleTestMode = async (enabled: boolean) => {
+    setIsTestMode(enabled);
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('tibeb_payment_test_mode', enabled.toString());
+      window.dispatchEvent(new Event('storage'));
+    }
+    toast.success(enabled ? 'Test Mode Enabled: Payments run as TEST without real funds.' : 'Live Mode Enabled: Real Telebirr/Chapa payments active.', {
+      icon: enabled ? '🧪' : '🟢',
+    });
+  };
+
+  const handleResetTestData = async () => {
+    if (!confirm('Are you sure you want to reset all test data? This will delete all test orders, test payments, and test activity so your system starts clean from 0.')) {
+      return;
+    }
+    try {
+      if (typeof window !== 'undefined') {
+        const verifs = JSON.parse(localStorage.getItem('tibeb_payment_verifications') || '[]');
+        const realVerifs = verifs.filter((v: any) => !v.is_test);
+        localStorage.setItem('tibeb_payment_verifications', JSON.stringify(realVerifs));
+
+        const orders = JSON.parse(localStorage.getItem('tibeb_orders') || '[]');
+        const realOrders = orders.filter((o: any) => !o.is_test);
+        localStorage.setItem('tibeb_orders', JSON.stringify(realOrders));
+
+        window.dispatchEvent(new Event('tibeb_verifications_updated'));
+        window.dispatchEvent(new Event('storage'));
+      }
+      setVerifications(prev => prev.filter(v => !v.is_test));
+      toast.success('Test data purged! Platform metrics reset to zero.', { icon: '🧹' });
+    } catch {
+      toast.error('Failed to reset test data.');
+    }
+  };
+
 
   // Verifications State
   const [verifications, setVerifications] = useState<PaymentVerification[]>([]);
@@ -1351,7 +1394,7 @@ export default function AdminPortalPage() {
 
                   <div className="space-y-1 mb-6">
                     <span className="text-xs text-emerald-200">Total Cleared Balance</span>
-                    <div className="text-3xl font-black tracking-tight">ETB 148,420</div>
+                    <div className="text-3xl font-black tracking-tight">ETB {totalVerifiedSales.toLocaleString()}</div>
                   </div>
 
                   <div className="flex items-end justify-between pt-2 border-t border-emerald-600/50 text-xs">
@@ -3210,6 +3253,56 @@ export default function AdminPortalPage() {
         {/* ========================================================================= */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
+            {/* Payment Test Mode & Data Management (Required Feature) */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black text-ink">Payment Gateway Test Mode</h3>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                      isTestMode ? 'bg-amber-100 text-amber-900 border border-amber-300' : 'bg-emerald-100 text-emerald-800 border border-emerald-300'
+                    }`}>
+                      {isTestMode ? '🧪 TEST MODE ACTIVE' : '🟢 LIVE PRODUCTION'}
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    While ON, student payments run in test flow (no real money). Test payments are tagged &quot;TEST&quot; and excluded from real revenue.
+                  </p>
+                </div>
+
+                <div className="flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => handleToggleTestMode(!isTestMode)}
+                    className={`px-5 py-2.5 rounded-2xl text-xs font-black transition-all cursor-pointer shadow-sm ${
+                      isTestMode
+                        ? 'bg-amber-500 text-white hover:bg-amber-600'
+                        : 'bg-emerald-700 text-white hover:bg-emerald-800'
+                    }`}
+                  >
+                    {isTestMode ? 'Switch to Live Mode' : 'Switch to Test Mode'}
+                  </button>
+                </div>
+              </div>
+
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div>
+                  <h4 className="text-sm font-black text-rose-700">Clean Slate & Reset Test Data</h4>
+                  <p className="text-xs text-gray-500 mt-0.5">
+                    Deletes all test transactions, mock orders, and test users so you can launch with 100% real live data starting from 0.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleResetTestData}
+                  className="px-5 py-2.5 rounded-2xl bg-rose-50 text-rose-700 border border-rose-200 hover:bg-rose-100 text-xs font-bold transition-all shadow-xs cursor-pointer hover:scale-105 active:scale-95"
+                >
+                  Reset Test Data (Start from 0)
+                </button>
+              </div>
+            </div>
+
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 flex flex-col md:flex-row md:items-center justify-between gap-4">
               <div>
                 <div className="flex items-center gap-2">

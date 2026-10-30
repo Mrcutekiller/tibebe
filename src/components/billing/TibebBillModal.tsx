@@ -37,10 +37,10 @@ export default function TibebBillModal({ order, onClose }: TibebBillModalProps) 
 
   const invoiceNum = order.id.startsWith('INV-') ? order.id : `INV-${order.id.replace(/[^0-9A-Z]/g, '').slice(-8) || '2026-8812'}`;
   const txRef = order.txHash || `TXN-TLB-${Math.floor(10000000 + Math.random() * 90000000)}`;
-  const studentName = order.customerName || 'Abebe Kebede';
-  const university = order.university || 'Addis Ababa University (AAU)';
-  const department = order.department || 'Faculty of Technology & Sciences';
-  const studentId = order.studentId || 'ETS-2026/8941';
+  const studentName = order.customerName || 'Registered Student';
+  const university = order.university || 'Higher Education Institution';
+  const department = order.department || 'Enrolled Department';
+  const studentId = order.studentId || 'TB-2026';
 
   const handlePrint = () => {
     if (typeof window !== 'undefined') {

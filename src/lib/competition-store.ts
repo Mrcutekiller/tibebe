@@ -4,6 +4,7 @@
 
 import { EXAMS } from './seed-data';
 import { addNotification } from './notification-store';
+import { supabase } from './supabase';
 
 export const COMPETITION_TEST_FEE = 5; // 5 ETB test entry fee
 export const SUPPORT_PRIORITY_FEE = 5; // 5 ETB priority tutor support fee
@@ -294,7 +295,7 @@ export const COURSE_COMPETITION_QUIZZES: CourseQuizChallenge[] = [
 // Starts clean from 0 with real competitive student rankings
 const INITIAL_LEADERBOARD_ENTRIES: StudentLeaderboardEntry[] = [];
 
-const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_leaderboard_v3';
+const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_real_board_clean';
 const STUDENT_POINTS_STORAGE_KEY = 'tibeb_student_points';
 
 // Retrieve student personal points
@@ -311,17 +312,7 @@ export function getStudentPoints(userId?: string): number {
 }
 
 // Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
-const ALL_MOCK_NAMES = [
-  'Natnael Girma', 'Blen Tesfaye', 'Kidus Yohannes', 'Selamawit Bekele',
-  'Yared Haile', 'Tsion Alemu', 'Mekdelawit Desta', 'Henok Melaku',
-  'Eden Berhanu', 'Eyob Kebede', 'Rahel Fekadu', 'Dawit Mengistu',
-  'Saron Worku', 'Kalkidan Bekele', 'Elias Tilahun', 'Marta Assefa',
-  'Abel Solomon', 'Bethelhem Negash', 'Surafel Wolde', 'Lidya Zewdu',
-  'Abebe Bikila', 'Selamawit D.', 'Dawit Haile', 'Hana T.', 'Yohannes K.',
-  'Bethelhem M.', 'Ephrem G.', 'Rahel B.', 'Natnael W.', 'Tsion A.',
-  'Kidus F.', 'Marta T.', 'Samuel D.', 'Hiwot Z.', 'Biniyam E.',
-  'Lydia G.', 'Surafel M.', 'Frehiwot N.', 'Robel S.', 'Senait K.'
-];
+const ALL_MOCK_NAMES: string[] = [];
 
 // Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
 export function awardStudentPoints(
@@ -426,6 +417,17 @@ export function awardStudentPoints(
       u.competition_points = next;
       localStorage.setItem('tibeb_user', JSON.stringify(u));
     }
+
+    // Persist real points to Supabase database
+    if (userId && !userId.startsWith('guest')) {
+      supabase
+        .from('users')
+        .update({ competition_points: next })
+        .eq('id', userId)
+        .then(({ error }) => {
+          if (error) console.warn('Supabase point update warning:', error);
+        });
+    }
   } catch {}
 
   return { newTotal: next, previousTotal: current };
@@ -446,13 +448,16 @@ export function getLeaderboardData(currentStudent?: {
   pointsToTop20: number;
   seasonMonth: string;
 } {
-  // Purge any old legacy mock leaderboard from localStorage
+  // Purge any legacy mock or test leaderboards from localStorage
   if (typeof window !== 'undefined') {
     try {
-      const oldRaw = localStorage.getItem('tibeb_competition_leaderboard');
-      if (oldRaw && (oldRaw.includes('Natnael Girma') || oldRaw.includes('lead-1') || oldRaw.includes('1420'))) {
-        localStorage.removeItem('tibeb_competition_leaderboard');
-      }
+      [
+        'tibeb_competition_leaderboard',
+        'tibeb_competition_leaderboard_v2',
+        'tibeb_competition_leaderboard_v3',
+        'tibeb_competition_leaderboard_v4',
+        'tibeb_leaderboard',
+      ].forEach((k) => localStorage.removeItem(k));
     } catch {}
   }
 
@@ -661,4 +666,94 @@ export function getStudentPersonalizedChallenges(userId?: string): CourseQuizCha
   });
 
   return result;
+}
+
+
+// ==============================================================================
+// REAL-TIME SUPABASE LEADERBOARD
+// Fetches live rankings from Supabase users table with competition_points > 0
+// ==============================================================================
+export async function fetchLiveLeaderboardFromSupabase(currentStudent?: {
+  id: string;
+  name: string;
+  university?: string;
+  department?: string;
+  avatar_url?: string;
+} | null): Promise<{
+  top20: StudentLeaderboardEntry[];
+  currentUserEntry: StudentLeaderboardEntry;
+  userRank: number;
+  isUserInTop20: boolean;
+  pointsToTop20: number;
+  seasonMonth: string;
+}> {
+  const seasonMonth = new Date().toLocaleDateString('en-US', {
+    month: 'long',
+    year: 'numeric',
+  });
+
+  const studentId = currentStudent?.id || 'current-student';
+  const studentName = currentStudent?.name || 'You';
+
+  try {
+    const { data: users, error } = await supabase
+      .from('users')
+      .select('id, name, university_id, department, avatar_url, competition_points')
+      .gt('competition_points', 0)
+      .order('competition_points', { ascending: false })
+      .limit(20);
+
+    let top20: StudentLeaderboardEntry[] = [];
+    if (!error && users && users.length > 0) {
+      top20 = users.map((u: any, idx: number) => ({
+        id: u.id,
+        name: u.name,
+        university: u.university_id ? u.university_id.toUpperCase() : 'AAU',
+        department: u.department || 'Enrolled Student',
+        points: Number(u.competition_points) || 0,
+        avatar: u.avatar_url,
+        rank: idx + 1,
+        quizzesCompleted: Math.floor((Number(u.competition_points) || 0) / 20),
+        testsPurchased: 0,
+        hasTelegramPremium: false,
+        lastActive: 'Active Student',
+      }));
+    } else {
+      // Fall back to clean local board if Supabase is offline
+      const local = getLeaderboardData(currentStudent);
+      top20 = local.top20;
+    }
+
+    const userRankIndex = top20.findIndex((e) => e.id === studentId || e.name === studentName);
+    const userPoints = userRankIndex >= 0 ? top20[userRankIndex].points : (currentStudent ? getStudentPoints(currentStudent.id) : 0);
+    const userRank = userRankIndex >= 0 ? userRankIndex + 1 : (userPoints > 0 ? top20.length + 1 : 0);
+
+    const currentUserEntry: StudentLeaderboardEntry = (userRankIndex >= 0 ? top20[userRankIndex] : null) || {
+      id: studentId,
+      name: studentName,
+      university: currentStudent?.university || 'AAU',
+      department: currentStudent?.department || 'General Studies',
+      points: userPoints,
+      rank: userRank || 1,
+      quizzesCompleted: 0,
+      testsPurchased: 0,
+      hasTelegramPremium: false,
+      lastActive: 'Just now',
+    };
+
+    const isUserInTop20 = userPoints > 0 && userRank > 0 && userRank <= 20;
+    const thresholdPoints = top20.length >= 20 ? top20[19].points : (top20[0]?.points || 50);
+    const pointsToTop20 = Math.max(0, thresholdPoints - userPoints + 10);
+
+    return {
+      top20,
+      currentUserEntry,
+      userRank,
+      isUserInTop20,
+      pointsToTop20,
+      seasonMonth,
+    };
+  } catch {
+    return getLeaderboardData(currentStudent);
+  }
 }

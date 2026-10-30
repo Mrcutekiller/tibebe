@@ -75,16 +75,16 @@ const SIDEBAR_ITEMS = [
 
 // Activity hours by month for the bar chart widget
 const MONTHLY_ACTIVITY = [
-  { month: 'Jan', hours: 2.1, active: false },
-  { month: 'Feb', hours: 2.8, active: false },
-  { month: 'Mar', hours: 1.5, active: false },
-  { month: 'Apr', hours: 3.2, active: false },
-  { month: 'May', hours: 2.4, active: false },
-  { month: 'Jun', hours: 1.9, active: false },
-  { month: 'Jul', hours: 2.7, active: false },
-  { month: 'Aug', hours: 3.0, active: false },
-  { month: 'Sep', hours: 2.2, active: false },
-  { month: 'Oct', hours: 3.5, active: true },
+  { month: 'Jan', hours: 0, active: false },
+  { month: 'Feb', hours: 0, active: false },
+  { month: 'Mar', hours: 0, active: false },
+  { month: 'Apr', hours: 0, active: false },
+  { month: 'May', hours: 0, active: false },
+  { month: 'Jun', hours: 0, active: false },
+  { month: 'Jul', hours: 0, active: false },
+  { month: 'Aug', hours: 0, active: false },
+  { month: 'Sep', hours: 0, active: false },
+  { month: 'Oct', hours: 0, active: false },
 ];
 
 const COURSE_PILLS = [
@@ -119,7 +119,7 @@ function DashboardContent() {
   const [quizSubmitted, setQuizSubmitted] = useState(false);
   const [quizScore, setQuizScore] = useState(0);
 
-  const displayName = user?.name || 'Abebe Kebede';
+  const displayName = user?.name || 'Student';
   const firstName = displayName.split(' ')[0] ?? 'Student';
   const currentUni = UNIVERSITIES.find(u => u.id === activeUni) ?? UNIVERSITIES[0];
 
@@ -577,7 +577,7 @@ function DashboardContent() {
                   <div className="w-5 h-5 rounded-full bg-amber-600 text-white text-[9px] flex items-center justify-center font-bold">B</div>
                   <div className="w-5 h-5 rounded-full bg-purple-700 text-white text-[9px] flex items-center justify-center font-bold">C</div>
                 </div>
-                <span>274 Peers studying today</span>
+                <span>Verified Student Member</span>
               </div>
             </div>
 
@@ -586,12 +586,12 @@ function DashboardContent() {
               <div className="flex items-center justify-between mb-3">
                 <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">Activity</span>
                 <span className="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-amber-50 text-amber-800 border border-amber-200 flex items-center gap-1">
-                  <Flame size={12} className="text-amber-500 fill-amber-500" /> Great result!
+                  <Flame size={12} className="text-amber-500 fill-amber-500" /> New Student
                 </span>
               </div>
 
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="text-2xl font-black text-ink">3.5h</span>
+                <span className="text-2xl font-black text-ink">0h</span>
                 <span className="text-xs text-gray-400 font-medium">Daily study time</span>
               </div>
 
@@ -620,7 +620,7 @@ function DashboardContent() {
               </div>
             </div>
 
-            {/* My Courses & Tests Widget (matching 2nd image) */}
+            {/* My Courses & Tests Widget */}
             <div className="space-y-3">
               <div className="flex items-center justify-between">
                 <h4 className="text-xs font-black uppercase tracking-wider text-gray-400">My Unlocked Tests</h4>
@@ -629,50 +629,34 @@ function DashboardContent() {
                 </Link>
               </div>
 
-              {/* Course Card 1 */}
-              <div className="p-3.5 rounded-2xl bg-white border border-stone-200 shadow-sm flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 text-emerald-800 flex items-center justify-center font-black text-xs flex-shrink-0">
-                    M1
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-xs text-ink truncate">AAU Math 1011 Final Paper</p>
-                    <p className="text-[10px] text-gray-400">Full Verified Solutions • Year 2025</p>
-                  </div>
+              <div className="p-5 rounded-2xl bg-white border border-stone-200/90 shadow-sm text-center space-y-2">
+                <div className="w-10 h-10 rounded-xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center mx-auto">
+                  <FileText size={20} />
                 </div>
-                <div className="flex items-center gap-1 text-gold text-xs font-bold">
-                  <Star size={12} className="fill-gold" />
-                  <span>4.9</span>
-                </div>
-              </div>
-
-              {/* Course Card 2 */}
-              <div className="p-3.5 rounded-2xl bg-white border border-stone-200 shadow-sm flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-xl bg-amber-100 text-amber-800 flex items-center justify-center font-black text-xs flex-shrink-0">
-                    P1
-                  </div>
-                  <div className="min-w-0">
-                    <p className="font-bold text-xs text-ink truncate">PHYS 1011 Mechanics Bootcamp</p>
-                    <p className="text-[10px] text-gray-400">Past Mid-Exams • Solved</p>
-                  </div>
-                </div>
-                <div className="flex items-center gap-1 text-gold text-xs font-bold">
-                  <Star size={12} className="fill-gold" />
-                  <span>4.8</span>
+                <p className="text-xs font-bold text-ink">No Unlocked Tests Yet</p>
+                <p className="text-[11px] text-gray-400">
+                  Unlock official 20 ETB exams to access full solutions and practice questions.
+                </p>
+                <div className="pt-1">
+                  <Link
+                    href="/catalog"
+                    className="inline-flex items-center gap-1 text-xs font-bold text-[#0B5D3B] hover:underline"
+                  >
+                    Browse Catalog →
+                  </Link>
                 </div>
               </div>
             </div>
 
             {/* Official Electronic Bill Quick Access Button */}
             <div className="pt-2">
-              <button
-                onClick={() => setSelectedBill(sampleBill)}
-                className="w-full py-3 px-4 rounded-2xl bg-[#0B5D3B] hover:bg-[#083d28] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer"
+              <Link
+                href="/dashboard/orders"
+                className="w-full py-3 px-4 rounded-2xl bg-[#0B5D3B] hover:bg-[#083d28] text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-md transition-all cursor-pointer text-center"
               >
                 <Download size={15} />
-                <span>Download My Official Bill</span>
-              </button>
+                <span>View Orders & Bills</span>
+              </Link>
             </div>
           </aside>
         </div>

@@ -30,17 +30,9 @@ export const ADMIN_CREDENTIALS = [
   {
     email: 'tibebexams@gmail.com',
     password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'Te26sc26$',
-    name: 'Tibeb Master Admin',
-  },
-  {
-    email: 'admin@tibeb.edu.et',
-    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'Admin@2025#',
-    name: 'Tibeb Chief Admin',
-  },
-  {
-    email: 'admin@tibeb.com',
-    password: process.env.NEXT_PUBLIC_ADMIN_PASSWORD || 'admin123',
-    name: 'Tibeb Operations Admin',
+    name: 'Tibeb Owner & Administrator',
+    phone: '0922846851',
+    role: 'owner' as const,
   },
 ];
 
@@ -253,7 +245,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         id: 'admin-' + Math.random().toString(36).substring(2, 8),
         name: matchedAdmin.name,
         email: matchedAdmin.email,
-        phone: '+251 91 100 0001',
+        phone: '0922846851',
         gender: 'Male',
         role: 'admin',
       };
@@ -331,23 +323,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: activeUser };
     }
 
-    // 4. Instant student login if using valid format
-    if (cleanEmail === 'student@aau.edu.et' || cleanEmail === 'biruk.t@aau.edu.et' || (cleanEmail.includes('@') && cleanPass.length >= 6)) {
-      const demoStudent: User = {
-        id: 'user-' + Date.now(),
-        name: cleanEmail.split('@')[0].replace('.', ' '),
-        email: cleanEmail,
-        phone: '+251 91 123 4567',
-        gender: 'Male',
-        university_id: 'aau',
-        department: 'Computer Science',
-        year: 2,
-        role: 'student',
-      };
-      localStorage.setItem('tibeb_user', JSON.stringify(demoStudent));
-      setUser(demoStudent);
-      return { success: true, user: demoStudent };
-    }
+    // 4. No demo account fallback — only real accounts can sign in
 
     return {
       success: false,
@@ -386,20 +362,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return { success: true, user: activeUser };
     }
 
-    const studentUser: User = {
-      id: 'user-' + Date.now(),
-      name: 'Tibeb Student',
-      phone: formattedPhone,
-      email: `student.${cleanPhone.slice(-4)}@tibeb.et`,
-      gender: 'Male',
-      university_id: 'aau',
-      department: 'Engineering',
-      year: 2,
-      role: 'student',
+    return {
+      success: false,
+      error: 'No registered student account found with this phone number. Please register first.',
     };
-    localStorage.setItem('tibeb_user', JSON.stringify(studentUser));
-    setUser(studentUser);
-    return { success: true, user: studentUser };
   };
 
   const registerUser = async (data: {

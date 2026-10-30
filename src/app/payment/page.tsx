@@ -713,54 +713,7 @@ function PaymentContent() {
               )}
             </div>
 
-            {/* Instant 1-Click Verification Tests */}
-            <div className="p-4 rounded-2xl bg-stone-100 border border-stone-200/80 space-y-2.5">
-              <span className="text-[10px] uppercase tracking-wider font-bold text-gray-500 block">
-                ⚡ Test Authentic vs. Fake Receipts (Auto QR Scan & Fraud Detection):
-              </span>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  onClick={() => runSuperfastAnalysis(SAMPLE_RECEIPTS.cbe, 'cbe-real.jpg')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-purple-700 hover:bg-purple-800 text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <QrCode size={13} />
-                  <span>✅ Test Authentic CBE QR (Auto-Scan)</span>
-                </button>
 
-                <button
-                  type="button"
-                  onClick={() => runSuperfastAnalysis(SAMPLE_RECEIPTS.telebirr, 'telebirr-real.jpg')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-black bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>✅ Test Authentic Telebirr</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => runSuperfastAnalysis(SAMPLE_RECEIPTS.cbe, '', 'fake_qr')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-red-100 hover:bg-red-200 text-red-700 border border-red-200 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>❌ Test Fake CBE QR (Wrong Site)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => runSuperfastAnalysis(SAMPLE_RECEIPTS.cbe, '', 'past_bill')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-amber-100 hover:bg-amber-200 text-amber-800 border border-amber-200 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>❌ Test Expired CBE QR (Past Date)</span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={() => runSuperfastAnalysis(SAMPLE_RECEIPTS.cbe, '', 'missing_qr')}
-                  className="px-3 py-1.5 rounded-xl text-xs font-bold bg-stone-200 hover:bg-red-100 hover:text-red-700 text-gray-700 transition-all cursor-pointer flex items-center gap-1.5"
-                >
-                  <span>❌ Test Missing QR Code</span>
-                </button>
-              </div>
-            </div>
 
             {/* =========================================================================
                 SUCCESS APPROVED BANNER & THE 2 ACTION BUTTONS (As Requested)
@@ -1098,7 +1051,7 @@ function PaymentContent() {
                   required
                   value={withdrawName}
                   onChange={(e) => setWithdrawName(e.target.value)}
-                  placeholder="e.g. Abebe Kebede"
+                  placeholder="e.g. Full Name on Account"
                   className="w-full text-sm font-bold text-ink px-4 py-3 rounded-2xl border border-stone-200 focus:outline-none focus:ring-2 focus:ring-[#0B5D3B]"
                 />
                 <span className="text-[10px] text-gray-400 mt-1 block">

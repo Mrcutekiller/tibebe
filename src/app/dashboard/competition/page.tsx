@@ -16,6 +16,7 @@ import {
   MONTHLY_PRIZES,
   POINT_REWARDS,
   getLeaderboardData,
+  fetchLiveLeaderboardFromSupabase,
   awardStudentPoints,
   getStudentPoints,
   CourseQuizChallenge,
@@ -68,14 +69,15 @@ export default function CompetitionLeaderboardPage() {
     } : null)
   );
 
-  const refreshLeaderboard = () => {
-    const fresh = getLeaderboardData(user ? {
+  const refreshLeaderboard = async () => {
+    const studentMeta = user ? {
       id: user.id,
       name: user.name,
       university: user.university_id?.toUpperCase() || 'AAU',
       department: user.department || 'Computer Science',
       avatar_url: user.avatar_url
-    } : null);
+    } : null;
+    const fresh = await fetchLiveLeaderboardFromSupabase(studentMeta);
     setLeaderboardData(fresh);
   };
 
@@ -536,7 +538,7 @@ export default function CompetitionLeaderboardPage() {
                 </p>
               </div>
               <span className="text-[11px] font-bold text-gray-400">
-                Displaying 20 Qualified Leaders
+                Displaying {top20.length} Qualified Leader{top20.length === 1 ? '' : 's'}
               </span>
             </div>
 
