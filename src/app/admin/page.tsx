@@ -1,9 +1,11 @@
 'use client';
 
+import { finalizeCurrentMonthManually } from '@/lib/competition-store';
+
 import React, { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import {
-  TrendingUp, Users, ShoppingBag, MessageSquare, Plus,
+  TrendingUp, Users, ShoppingBag, Trophy, MessageSquare, Plus,
   FileText, Shield, CheckCircle, Clock, AlertCircle,
   Search, Filter, ChevronRight, Download, Send, RefreshCw,
   Zap, ArrowUpRight, DollarSign, University, Eye, EyeOff,
@@ -117,6 +119,18 @@ export default function AdminPortalPage() {
     toast.success(enabled ? 'Test Mode Enabled: Payments run as TEST without real funds.' : 'Live Mode Enabled: Real Telebirr/Chapa payments active.', {
       icon: enabled ? '🧪' : '🟢',
     });
+  };
+
+  const handleFinalizeMonthlySeason = async () => {
+    if (!confirm('Are you sure you want to finalize this month\'s competition? This will archive the top 3 student winners, award their cash prizes (1st: 1,000 ETB, 2nd: 600 ETB, 3rd: 300 ETB), and reset all leaderboard scores to 0 for the brand new month.')) {
+      return;
+    }
+    const res = await finalizeCurrentMonthManually();
+    if (res.success) {
+      toast.success(res.message, { duration: 6000, icon: '🏆' });
+    } else {
+      toast.error(res.message);
+    }
   };
 
   const handleResetTestData = async () => {
@@ -3253,6 +3267,46 @@ export default function AdminPortalPage() {
         {/* ========================================================================= */}
         {activeTab === 'profile' && (
           <div className="space-y-6">
+                        {/* Monthly Competition & 3 Winners Cycle */}
+            <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-4 border-b border-gray-100">
+                <div>
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-base font-black text-ink">Monthly Student Competition & 3 Winners Cycle</h3>
+                    <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-amber-100 text-amber-900 border border-amber-300">
+                      🏆 3 Winners Every Month
+                    </span>
+                  </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Leaderboard starts from 0 every month. The top 3 ranked students at the end of each month win 1,000 ETB, 600 ETB, and 300 ETB.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  onClick={handleFinalizeMonthlySeason}
+                  className="px-5 py-2.5 rounded-2xl bg-amber-500 hover:bg-amber-600 text-white text-xs font-black transition-all cursor-pointer shadow-sm flex items-center gap-2 shrink-0"
+                >
+                  <Trophy size={14} /> Finalize Month & Award 3 Winners (Reset to 0)
+                </button>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                <div className="p-3 bg-amber-50/60 rounded-xl border border-amber-200">
+                  <span className="text-amber-800 font-bold block text-[11px]">🥇 1st Place Champion</span>
+                  <span className="font-black text-ink text-sm">1,000 ETB Cash Prize</span>
+                </div>
+                <div className="p-3 bg-slate-50 rounded-xl border border-slate-200">
+                  <span className="text-slate-700 font-bold block text-[11px]">🥈 2nd Place Winner</span>
+                  <span className="font-black text-ink text-sm">600 ETB Cash Prize</span>
+                </div>
+                <div className="p-3 bg-orange-50/60 rounded-xl border border-orange-200">
+                  <span className="text-amber-900 font-bold block text-[11px]">🥉 3rd Place Winner</span>
+                  <span className="font-black text-ink text-sm">300 ETB Cash Prize</span>
+                </div>
+              </div>
+            </div>
+
             {/* Payment Test Mode & Data Management (Required Feature) */}
             <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-6">
               <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-6 border-b border-gray-100">

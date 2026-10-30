@@ -295,7 +295,7 @@ export const COURSE_COMPETITION_QUIZZES: CourseQuizChallenge[] = [
 // Starts clean from 0 with real competitive student rankings
 const INITIAL_LEADERBOARD_ENTRIES: StudentLeaderboardEntry[] = [];
 
-const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_real_board_clean';
+const LEADERBOARD_STORAGE_KEY = 'tibeb_competition_live_v6_zero';
 const STUDENT_POINTS_STORAGE_KEY = 'tibeb_student_points';
 
 // Retrieve student personal points
@@ -312,7 +312,28 @@ export function getStudentPoints(userId?: string): number {
 }
 
 // Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
-const ALL_MOCK_NAMES: string[] = [];
+const ALL_MOCK_NAMES: string[] = [
+  'Natnael Girma',
+  'Blen Tesfaye',
+  'Kidus Yohannes',
+  'Selamawit Bekele',
+  'Yared Haile',
+  'Tsion Alemu',
+  'Mekdelawit Desta',
+  'Henok Melaku',
+  'Eden Berhanu',
+  'Eyob Kebede',
+  'Kaleb Tadesse',
+  'Lensa Abera',
+  'Desta Alemu',
+  'Kalkidan Getachew',
+  'Abel Teshome',
+  'Eyerusalem Negash',
+  'Binyam Fikru',
+  'Helen Wolde',
+  'Samuel Assefa',
+  'Bethlehem Haile',
+];
 
 // Award points to the student (e.g. from Quiz, Test Purchase, Telegram Premium)
 export function awardStudentPoints(
@@ -448,6 +469,7 @@ export function getLeaderboardData(currentStudent?: {
   pointsToTop20: number;
   seasonMonth: string;
 } {
+  checkAndRotateMonthlySeason();
   // Purge any legacy mock or test leaderboards from localStorage
   if (typeof window !== 'undefined') {
     try {
@@ -704,22 +726,29 @@ export async function fetchLiveLeaderboardFromSupabase(currentStudent?: {
       .limit(20);
 
     let top20: StudentLeaderboardEntry[] = [];
-    if (!error && users && users.length > 0) {
-      top20 = users.map((u: any, idx: number) => ({
-        id: u.id,
-        name: u.name,
-        university: u.university_id ? u.university_id.toUpperCase() : 'AAU',
-        department: u.department || 'Enrolled Student',
-        points: Number(u.competition_points) || 0,
-        avatar: u.avatar_url,
-        rank: idx + 1,
-        quizzesCompleted: Math.floor((Number(u.competition_points) || 0) / 20),
-        testsPurchased: 0,
-        hasTelegramPremium: false,
-        lastActive: 'Active Student',
-      }));
+    if (!error) {
+      if (users && users.length > 0) {
+        top20 = users
+          .filter((u: any) => u.name && !ALL_MOCK_NAMES.includes(u.name) && Number(u.competition_points) > 0)
+          .map((u: any, idx: number) => ({
+            id: u.id,
+            name: u.name,
+            university: u.university_id ? u.university_id.toUpperCase() : 'AAU',
+            department: u.department || 'Enrolled Student',
+            points: Number(u.competition_points) || 0,
+            avatar: u.avatar_url,
+            rank: idx + 1,
+            quizzesCompleted: Math.floor((Number(u.competition_points) || 0) / 20),
+            testsPurchased: 0,
+            hasTelegramPremium: false,
+            lastActive: 'Active Student',
+          }));
+      } else {
+        // Connected to Supabase, but 0 users have competition points yet
+        top20 = [];
+      }
     } else {
-      // Fall back to clean local board if Supabase is offline
+      // Offline fallback: only use local board if it has real user points
       const local = getLeaderboardData(currentStudent);
       top20 = local.top20;
     }
@@ -755,5 +784,214 @@ export async function fetchLiveLeaderboardFromSupabase(currentStudent?: {
     };
   } catch {
     return getLeaderboardData(currentStudent);
+  }
+}
+
+
+// ==============================================================================
+// MONTHLY COMPETITION & 3 WINNERS SYSTEM
+// Leaderboard resets to 0 at the start of every calendar month.
+// Top 3 Winners every month receive: 1st (1,000 ETB), 2nd (600 ETB), 3rd (300 ETB)
+// ==============================================================================
+
+export interface MonthlyWinnerEntry {
+  place: 1 | 2 | 3;
+  userId: string;
+  userName: string;
+  university: string;
+  department: string;
+  points: number;
+  prizeEtb: number;
+  badge: string;
+  avatar?: string;
+}
+
+export interface MonthlySeasonResult {
+  seasonKey: string; // e.g. "2026-10"
+  seasonName: string; // e.g. "October 2026"
+  finalizedAt: string;
+  totalParticipants: number;
+  winners: MonthlyWinnerEntry[]; // Exactly top 3 winners
+}
+
+const CURRENT_SEASON_KEY = 'tibeb_active_competition_season';
+const MONTHLY_WINNERS_KEY = 'tibeb_monthly_winners_archive';
+
+export function getCurrentSeasonKey(): string {
+  const now = new Date();
+  return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+}
+
+export function getSeasonDisplayName(seasonKey?: string): string {
+  if (!seasonKey) {
+    return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  }
+  const parts = seasonKey.split('-');
+  if (parts.length < 2) return seasonKey;
+  const d = new Date(Number(parts[0]), Number(parts[1]) - 1, 1);
+  return d.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+
+export function getSeasonTimeRemaining(): { days: number; hours: number; minutes: number; text: string } {
+  const now = new Date();
+  const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59);
+  const diffMs = Math.max(0, endOfMonth.getTime() - now.getTime());
+  const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+  const hours = Math.floor((diffMs / (1000 * 60 * 60)) % 24);
+  const minutes = Math.floor((diffMs / (1000 * 60)) % 60);
+  return {
+    days,
+    hours,
+    minutes,
+    text: `${days}d ${hours}h ${minutes}m`,
+  };
+}
+
+export function getPastMonthlyWinners(): MonthlySeasonResult[] {
+  if (typeof window === 'undefined') return [];
+  try {
+    const raw = localStorage.getItem(MONTHLY_WINNERS_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch {
+    return [];
+  }
+}
+
+// Automatically checks if a new month has arrived; if so, archives top 3 winners and resets to 0
+export function checkAndRotateMonthlySeason(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const currentSeason = getCurrentSeasonKey();
+    const storedSeason = localStorage.getItem(CURRENT_SEASON_KEY);
+
+    if (!storedSeason) {
+      localStorage.setItem(CURRENT_SEASON_KEY, currentSeason);
+      return false;
+    }
+
+    if (storedSeason !== currentSeason) {
+      // Month changed! Finalize previous month top 3 winners and start fresh from 0
+      finalizeMonthSeasonInternal(storedSeason);
+      localStorage.setItem(CURRENT_SEASON_KEY, currentSeason);
+      return true;
+    }
+  } catch {}
+  return false;
+}
+
+// Internal finalizer to archive the 3 winners and reset points
+function finalizeMonthSeasonInternal(seasonToClose: string): MonthlySeasonResult | null {
+  if (typeof window === 'undefined') return null;
+
+  try {
+    const rawBoard = localStorage.getItem(LEADERBOARD_STORAGE_KEY);
+    const board: StudentLeaderboardEntry[] = rawBoard ? JSON.parse(rawBoard) : [];
+    
+    // Sort to determine 1st, 2nd, 3rd place
+    const qualified = board.filter(e => e.points > 0).sort((a, b) => b.points - a.points);
+    
+    const prizes = [
+      { place: 1 as const, prizeEtb: 1000, badge: '🥇 1st Place Champion' },
+      { place: 2 as const, prizeEtb: 600, badge: '🥈 2nd Place Winner' },
+      { place: 3 as const, prizeEtb: 300, badge: '🥉 3rd Place Winner' },
+    ];
+
+    const winners: MonthlyWinnerEntry[] = [];
+    qualified.slice(0, 3).forEach((q, idx) => {
+      const p = prizes[idx];
+      winners.push({
+        place: p.place,
+        userId: q.id,
+        userName: q.name,
+        university: q.university,
+        department: q.department,
+        points: q.points,
+        prizeEtb: p.prizeEtb,
+        badge: p.badge,
+        avatar: q.avatar,
+      });
+
+      // Notify winner
+      try {
+        addNotification({
+          userId: q.id,
+          title: `🏆 You Won ${p.prizeEtb} ETB in ${getSeasonDisplayName(seasonToClose)}!`,
+          message: `Congratulations! You placed #${p.place} on the monthly leaderboard with ${q.points} points. Your cash reward of ${p.prizeEtb} ETB is awarded!`,
+          type: 'leaderboard',
+          link: '/dashboard/competition',
+        });
+      } catch {}
+    });
+
+    const result: MonthlySeasonResult = {
+      seasonKey: seasonToClose,
+      seasonName: getSeasonDisplayName(seasonToClose),
+      finalizedAt: new Date().toISOString(),
+      totalParticipants: qualified.length,
+      winners,
+    };
+
+    // Save to Hall of Fame archive
+    const pastWinners = getPastMonthlyWinners();
+    pastWinners.unshift(result);
+    localStorage.setItem(MONTHLY_WINNERS_KEY, JSON.stringify(pastWinners));
+
+    // RESET TO ZERO FOR NEW MONTH
+    localStorage.setItem(LEADERBOARD_STORAGE_KEY, JSON.stringify([]));
+    localStorage.setItem(STUDENT_POINTS_STORAGE_KEY, JSON.stringify(0));
+
+    // Reset active user session points
+    const uRaw = localStorage.getItem('tibeb_user');
+    if (uRaw) {
+      const u = JSON.parse(uRaw);
+      u.competition_points = 0;
+      localStorage.setItem('tibeb_user', JSON.stringify(u));
+    }
+
+    window.dispatchEvent(new Event('tibeb_student_points_updated'));
+    window.dispatchEvent(new Event('tibeb_competition_leaderboard_updated'));
+    window.dispatchEvent(new Event('storage'));
+
+    return result;
+  } catch (err) {
+    console.error('Failed to finalize monthly season:', err);
+    return null;
+  }
+}
+
+// Admin action: Manually finalize current month and reward the 3 winners
+export async function finalizeCurrentMonthManually(): Promise<{ success: boolean; message: string; result?: MonthlySeasonResult }> {
+  if (typeof window === 'undefined') return { success: false, message: 'Client only' };
+
+  try {
+    const currentSeason = getCurrentSeasonKey();
+    const result = finalizeMonthSeasonInternal(currentSeason);
+    
+    // Also reset in Supabase if connected
+    try {
+      await supabase.from('users').update({ competition_points: 0 }).neq('id', 'system');
+    } catch {}
+
+    // Advance season key to next month or mark finalized
+    const now = new Date();
+    const nextMonth = `${now.getFullYear()}-${String(now.getMonth() + 2).padStart(2, '0')}`;
+    localStorage.setItem(CURRENT_SEASON_KEY, nextMonth);
+
+    if (result && result.winners.length > 0) {
+      const names = result.winners.map(w => `${w.badge}: ${w.userName} (${w.prizeEtb} ETB)`).join(', ');
+      return {
+        success: true,
+        message: `${result.seasonName} successfully finalized! 3 Winners: ${names}. Leaderboard reset to 0 for the new month.`,
+        result,
+      };
+    }
+
+    return {
+      success: true,
+      message: `${getSeasonDisplayName(currentSeason)} finalized! No competitors had points > 0. Leaderboard reset to 0 for the new month.`,
+      result: result || undefined,
+    };
+  } catch (err: any) {
+    return { success: false, message: err?.message || 'Failed to finalize month' };
   }
 }

@@ -9,8 +9,12 @@ import {
   HelpCircle, User, Check, X, RotateCcw
 } from 'lucide-react';
 import { useAuth } from '@/context/AuthContext';
+import { supabase } from '@/lib/supabase';
 import {
   COURSE_COMPETITION_QUIZZES,
+  getSeasonTimeRemaining,
+  getPastMonthlyWinners,
+  MonthlySeasonResult,
   COMPETITION_TEST_FEE,
   getStudentPersonalizedChallenges,
   MONTHLY_PRIZES,
@@ -35,13 +39,20 @@ export default function CompetitionLeaderboardPage() {
   }, [user?.id]);
 
   // Active sub-view: 'leaderboard' or 'quiz'
-  const [activeTab, setActiveTab] = useState<'leaderboard' | 'quiz'>('leaderboard');
+  const [activeTab, setActiveTab] = useState<'leaderboard' | 'quiz' | 'winners'>('leaderboard');
   
-  // Real-time live date display
+  // Real-time live date display & Season Countdown
   const [currentDateTime, setCurrentDateTime] = useState('');
+  const [seasonTimeLeft, setSeasonTimeLeft] = useState(() => getSeasonTimeRemaining().text);
+  const [pastWinnersList, setPastWinnersList] = useState<MonthlySeasonResult[]>([]);
+
+  useEffect(() => {
+    setPastWinnersList(getPastMonthlyWinners());
+  }, [activeTab]);
   useEffect(() => {
     const updateTime = () => {
       const now = new Date();
+      setSeasonTimeLeft(getSeasonTimeRemaining().text);
       setCurrentDateTime(
         now.toLocaleDateString('en-US', {
           weekday: 'long',
@@ -81,21 +92,35 @@ export default function CompetitionLeaderboardPage() {
     setLeaderboardData(fresh);
   };
 
-  // Listen to point updates across tabs
+  // Listen to point updates across tabs and real-time database
   useEffect(() => {
     refreshLeaderboard();
     const handleStorage = (e: StorageEvent) => {
-      if (e.key === 'tibeb_student_points' || e.key === 'tibeb_competition_leaderboard_v3' || e.key === 'tibeb_competition_leaderboard') {
+      if (e.key === 'tibeb_student_points' || e.key === 'tibeb_competition_live_v6_zero' || e.key?.startsWith('tibeb_comp')) {
         refreshLeaderboard();
       }
     };
     window.addEventListener('storage', handleStorage);
     window.addEventListener('tibeb_student_points_updated', refreshLeaderboard);
     window.addEventListener('tibeb_competition_leaderboard_updated', refreshLeaderboard);
+
+    // Live WebSocket connection to Supabase: real-time updates as soon as any user scores points
+    const realtimeChannel = supabase
+      .channel('public:users:competition')
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'users' },
+        () => {
+          refreshLeaderboard();
+        }
+      )
+      .subscribe();
+
     return () => {
       window.removeEventListener('storage', handleStorage);
       window.removeEventListener('tibeb_student_points_updated', refreshLeaderboard);
       window.removeEventListener('tibeb_competition_leaderboard_updated', refreshLeaderboard);
+      supabase.removeChannel(realtimeChannel);
     };
   }, [user]);
 
@@ -508,6 +533,22 @@ export default function CompetitionLeaderboardPage() {
             <BookOpen size={14} />
             Course Quizzes ({challenges.length})
           </button>
+
+          <button
+            onClick={() => {
+              setPastWinnersList(getPastMonthlyWinners());
+              setActiveTab('winners');
+            }}
+            className={cn(
+              'px-4 py-2 rounded-xl text-xs font-extrabold transition-all flex items-center gap-2 cursor-pointer',
+              activeTab === 'winners'
+                ? 'bg-[#0B5D3B] text-white shadow-sm'
+                : 'bg-white text-gray-600 hover:text-ink border border-gray-200'
+            )}
+          >
+            <Award size={14} />
+            3 Monthly Winners (Hall of Fame)
+          </button>
         </div>
 
         <button
@@ -532,9 +573,12 @@ export default function CompetitionLeaderboardPage() {
                   <span className="px-2 py-0.5 rounded-full text-[10px] font-extrabold bg-emerald-100 text-[#0B5D3B]">
                     Live {seasonMonth}
                   </span>
+                  <span className="px-2 py-0.5 rounded-full text-[10px] font-bold bg-amber-100 text-amber-900 border border-amber-300 flex items-center gap-1">
+                    <Clock size={11} /> Season Ends in: {seasonTimeLeft}
+                  </span>
                 </h2>
                 <p className="text-xs text-gray-500">
-                  Updated in real-time. Cash prizes are finalized and distributed at the end of every calendar month.
+                  Scores start from 0 every month. The Top 3 students on the final day win 1,000 ETB, 600 ETB, and 300 ETB cash prizes!
                 </p>
               </div>
               <span className="text-[11px] font-bold text-gray-400">
@@ -1013,6 +1057,108 @@ export default function CompetitionLeaderboardPage() {
                 <span>Pay 5 ETB & Begin</span>
               </button>
             </div>
+          </div>
+        </div>
+      )}
+
+
+      {/* =========================================================================
+          TAB 3: PAST MONTHLY WINNERS (Hall of Fame — 3 Winners Every Month)
+         ========================================================================= */}
+      {activeTab === 'winners' && (
+        <div className="space-y-6">
+          <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-3">
+            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-4 border-b border-gray-100">
+              <div>
+                <h2 className="text-lg font-black text-ink flex items-center gap-2">
+                  <Trophy size={20} className="text-gold" />
+                  Hall of Fame — 3 Monthly Winners
+                </h2>
+                <p className="text-xs text-gray-500">
+                  At the end of every month, scores reset to 0 and the top 3 highest-ranking students receive their cash rewards.
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="px-3 py-1 rounded-full bg-emerald-50 text-[#0B5D3B] text-xs font-bold border border-emerald-200">
+                  1,900 ETB Monthly Prize Pool
+                </span>
+              </div>
+            </div>
+
+            {pastWinnersList.length === 0 ? (
+              <div className="text-center py-12 px-4 space-y-3">
+                <div className="w-16 h-16 rounded-3xl bg-amber-50 text-gold mx-auto flex items-center justify-center border border-amber-200 shadow-sm">
+                  <Award size={32} className="text-gold" />
+                </div>
+                <h3 className="font-black text-ink text-base">Current {seasonMonth} Season is Active!</h3>
+                <p className="text-xs text-gray-500 max-w-md mx-auto">
+                  No monthly seasons have concluded yet. When {seasonMonth} finishes, the top 3 student champions will be permanently inducted into the Hall of Fame here and paid their cash rewards!
+                </p>
+                <div className="pt-2 flex justify-center gap-3">
+                  <button
+                    onClick={() => setActiveTab('leaderboard')}
+                    className="px-5 py-2.5 rounded-xl bg-[#0B5D3B] text-white text-xs font-bold shadow-md hover:bg-emerald-800 transition-all cursor-pointer"
+                  >
+                    View Current Leaderboard
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('quiz')}
+                    className="px-5 py-2.5 rounded-xl bg-amber-500 text-white text-xs font-bold shadow-md hover:bg-amber-600 transition-all cursor-pointer"
+                  >
+                    Earn Competition Points (+100)
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-6 pt-2">
+                {pastWinnersList.map((season) => (
+                  <div key={season.seasonKey} className="rounded-2xl border border-gray-200 p-5 bg-stone-50/50 space-y-4">
+                    <div className="flex items-center justify-between pb-3 border-b border-gray-200">
+                      <div>
+                        <h4 className="font-black text-sm text-ink">{season.seasonName} Season Champions</h4>
+                        <span className="text-[11px] text-gray-400">Finalized: {new Date(season.finalizedAt).toLocaleDateString()}</span>
+                      </div>
+                      <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase bg-emerald-100 text-emerald-800">
+                        {season.winners.length} Official Winners
+                      </span>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                      {season.winners.map((w) => (
+                        <div
+                          key={w.place}
+                          className={cn(
+                            'rounded-2xl p-4 border flex flex-col justify-between space-y-3',
+                            w.place === 1
+                              ? 'bg-amber-50/80 border-amber-300 shadow-sm'
+                              : w.place === 2
+                              ? 'bg-slate-50 border-slate-300'
+                              : 'bg-orange-50/50 border-orange-200'
+                          )}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="text-xl">
+                              {w.place === 1 ? '🥇' : w.place === 2 ? '🥈' : '🥉'}
+                            </span>
+                            <span className="text-xs font-black px-2 py-0.5 rounded-full bg-white shadow-xs">
+                              {w.prizeEtb} ETB Prize
+                            </span>
+                          </div>
+                          <div>
+                            <p className="font-black text-xs text-ink">{w.userName}</p>
+                            <p className="text-[10px] text-gray-500">{w.university} • {w.department}</p>
+                          </div>
+                          <div className="pt-2 border-t border-gray-200/50 flex items-center justify-between text-[11px]">
+                            <span className="text-gray-400 font-bold">Final Score:</span>
+                            <span className="font-mono font-black text-ink">{w.points} pts</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}
