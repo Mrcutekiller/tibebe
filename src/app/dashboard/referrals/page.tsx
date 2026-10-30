@@ -23,6 +23,14 @@ import { cn } from '@/lib/utils';
 export default function ReferralsPage() {
   const { user, walletBalance } = useAuth();
   const [copied, setCopied] = useState(false);
+  const [copiedCode, setCopiedCode] = useState(false);
+
+  const handleCopyCode = () => {
+    navigator.clipboard.writeText(referralCode);
+    setCopiedCode(true);
+    toast.success('Referral code copied! Share with your classmates.');
+    setTimeout(() => setCopiedCode(false), 2500);
+  };
   const [referralBalance, setReferralBalance] = useState<number>(0);
   const [referrals, setReferrals] = useState<ReferralRecord[]>([]);
   const [transferAmount, setTransferAmount] = useState<string>('');
@@ -223,24 +231,50 @@ export default function ReferralsPage() {
         </div>
       </div>
 
-      {/* Share Link & Referral Code Box */}
-      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
-          <div>
-            <h2 className="text-base font-black text-ink">Your Unique Referral Invite Link</h2>
-            <p className="text-xs text-gray-500">
-              Share this link in your university Telegram batch, dorm chats, or send directly to classmates.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 self-start sm:self-auto">
-            <span className="text-xs text-gray-400 font-bold">Code:</span>
-            <span className="font-mono text-xs font-black px-2.5 py-1 rounded-lg bg-stone-100 text-[#0B5D3B] border border-stone-200">
+      {/* PROMINENT REFERRAL CODE HERO CARD */}
+      <div className="bg-gradient-to-r from-amber-50 via-emerald-50/50 to-amber-50 rounded-3xl p-6 sm:p-8 shadow-sm border-2 border-amber-300 space-y-4">
+        <div className="text-center space-y-2">
+          <span className="px-3 py-1 rounded-full text-[11px] font-black uppercase tracking-wider bg-amber-100 text-amber-900 border border-amber-300 inline-flex items-center gap-1.5">
+            <Gift size={13} /> Your Official Referral Code
+          </span>
+          <h2 className="text-lg sm:text-xl font-black text-ink">
+            Give this Code to Classmates
+          </h2>
+          <p className="text-xs text-gray-600 max-w-lg mx-auto">
+            When friends sign up by email or Google and fill in their name, age/year, they are asked for a referral code. Tell them to enter yours!
+          </p>
+        </div>
+
+        {/* Giant Code Display & Copy Button */}
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+          <div className="bg-white px-6 py-3.5 rounded-2xl border-2 border-dashed border-amber-400 shadow-sm flex items-center gap-4">
+            <span className="text-2xl sm:text-3xl font-mono font-black text-[#0B5D3B] tracking-wider select-all">
               {referralCode}
             </span>
           </div>
+
+          <button
+            onClick={handleCopyCode}
+            className="py-3.5 px-6 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-black text-xs uppercase tracking-wider flex items-center gap-2 shadow-md transition-all cursor-pointer hover:scale-105 active:scale-95"
+          >
+            {copiedCode ? <Check size={16} className="text-emerald-300" /> : <Copy size={16} />}
+            <span>{copiedCode ? 'Code Copied!' : 'Copy Referral Code'}</span>
+          </button>
+        </div>
+      </div>
+
+      {/* DIRECT SHAREABLE LINK (AUTO-FILLS CODE FOR FRIENDS) */}
+      <div className="bg-white rounded-3xl p-6 sm:p-8 shadow-sm border border-gray-100 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2 pb-3 border-b border-gray-100">
+          <div>
+            <h3 className="text-base font-black text-ink">Or Share Direct Link (Auto-Fills Code)</h3>
+            <p className="text-xs text-gray-500">
+              When classmates open this link, the sign up page automatically opens and pre-fills your referral code for them!
+            </p>
+          </div>
+          <span className="text-xs font-bold text-gray-400">1-Click Auto Fill</span>
         </div>
 
-        {/* Input with Copy and Telegram Share */}
         <div className="flex flex-col sm:flex-row items-stretch gap-2.5">
           <div className="flex-1 relative">
             <input
@@ -253,10 +287,10 @@ export default function ReferralsPage() {
 
           <button
             onClick={handleCopyLink}
-            className="py-3 px-5 rounded-2xl bg-[#0B5D3B] hover:bg-emerald-800 text-white font-bold text-xs flex items-center justify-center gap-2 transition-all shadow-sm cursor-pointer"
+            className="py-3 px-5 rounded-2xl border-2 border-gray-200 hover:border-[#0B5D3B] hover:bg-gray-50 text-ink font-bold text-xs flex items-center justify-center gap-2 transition-all cursor-pointer"
           >
-            {copied ? <Check size={16} /> : <Copy size={16} />}
-            <span>{copied ? 'Copied!' : 'Copy Link'}</span>
+            {copied ? <Check size={16} className="text-emerald-600" /> : <Copy size={16} />}
+            <span>{copied ? 'Link Copied!' : 'Copy Link'}</span>
           </button>
 
           <button
@@ -451,3 +485,4 @@ export default function ReferralsPage() {
     </div>
   );
 }
+

@@ -3,7 +3,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { awardStudentPoints, POINT_REWARDS } from '@/lib/competition-store';
-import { triggerReferralPurchaseReward } from '@/lib/referral-store';
+import { triggerReferralPurchaseReward, recordReferralSignup } from '@/lib/referral-store';
 
 export interface User {
   id: string;
@@ -141,6 +141,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         localStorage.setItem('tibeb_user', JSON.stringify(resolvedUser));
         setUser(resolvedUser);
+
+        // Check if there is a pending referral code (e.g. from Google Sign-In)
+        const pendingRef = localStorage.getItem('tibeb_pending_ref_code');
+        if (pendingRef) {
+          try {
+            recordReferralSignup(pendingRef, {
+              id: resolvedUser.id,
+              name: resolvedUser.name,
+              university: resolvedUser.university_id,
+              department: resolvedUser.department,
+            });
+            localStorage.removeItem('tibeb_pending_ref_code');
+          } catch {}
+        }
       }
       setLoading(false);
     });

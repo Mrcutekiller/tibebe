@@ -6,7 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import {
   Mail, Lock, User, GraduationCap, BookOpen,
   ArrowLeft, CheckCircle, ChevronRight, Eye, EyeOff,
-  Sparkles, Shield, AlertCircle, Camera, Upload, Phone, Check
+  Sparkles, Shield, AlertCircle, Camera, Upload, Phone, Check, Gift
 } from 'lucide-react';
 import { useLanguage } from '@/context/LanguageContext';
 import { useAuth } from '@/context/AuthContext';
@@ -84,6 +84,10 @@ function SignupContent() {
   const handleGoogleSignUp = async () => {
     setGoogleLoading(true);
     setErrors({});
+    const refCode = referralCodeInput.trim() || searchParams.get('ref') || '';
+    if (refCode && typeof window !== 'undefined') {
+      localStorage.setItem('tibeb_pending_ref_code', refCode.toUpperCase());
+    }
     const res = await signInWithGoogle();
     if (res?.error) {
       setErrors({ form: res.error });
@@ -315,6 +319,19 @@ function SignupContent() {
              ========================================================================= */}
           {step === 1 && (
             <div className="space-y-4">
+              {/* Referral Code Banner if clicked link */}
+              {referralCodeInput && (
+                <div className="p-3 rounded-2xl bg-emerald-50 border border-emerald-300 text-[#0B5D3B] text-xs font-bold flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Gift size={16} />
+                    <span>Referral Code Applied: <strong className="font-mono text-sm">{referralCodeInput}</strong></span>
+                  </div>
+                  <span className="text-[10px] uppercase font-black bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded-full">
+                    Auto-Filled
+                  </span>
+                </div>
+              )}
+
               {/* GOOGLE SIGN UP BUTTON */}
               <button
                 type="button"
@@ -407,25 +424,7 @@ function SignupContent() {
                 )}
               </div>
 
-              {/* Referral Code (Optional) */}
-              <div>
-                <label className="block text-xs font-bold text-ink-muted uppercase tracking-wider mb-1.5 flex items-center justify-between">
-                  <span>Referral Code (Optional)</span>
-                  {searchParams.get('ref') && (
-                    <span className="text-[10px] text-[#0B5D3B] font-bold">🎁 Link Applied</span>
-                  )}
-                </label>
-                <input
-                  type="text"
-                  value={referralCodeInput}
-                  onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
-                  placeholder="e.g. TIBEB-84F2"
-                  className="w-full px-4 py-3 bg-white border border-gray-300 focus:border-green focus:ring-2 focus:ring-green/10 rounded-xl text-ink text-sm font-mono placeholder:text-gray-400 placeholder:font-sans transition-all outline-none uppercase"
-                />
-                <p className="text-[11px] text-gray-400 mt-1">
-                  If a classmate invited you, enter their code so they receive their 5 ETB reward after your 1st test unlock.
-                </p>
-              </div>
+
 
               <Button
                 variant="green"
@@ -571,6 +570,33 @@ function SignupContent() {
                     </button>
                   ))}
                 </div>
+              </div>
+
+              {/* REFERRAL CODE (OPTIONAL) - Asked when filling personal details */}
+              <div className="p-4 rounded-2xl bg-amber-50/70 border border-amber-200/80 space-y-2">
+                <div className="flex items-center justify-between">
+                  <label className="block text-xs font-black text-amber-950 uppercase tracking-wider flex items-center gap-1.5">
+                    <Gift size={14} className="text-amber-800" />
+                    <span>Classmate Referral Code (Optional)</span>
+                  </label>
+                  {searchParams.get('ref') ? (
+                    <span className="text-[10px] font-black text-[#0B5D3B] bg-emerald-100 border border-emerald-300 px-2 py-0.5 rounded-full">
+                      ✓ Auto-Filled from Classmate Link
+                    </span>
+                  ) : (
+                    <span className="text-[10px] text-gray-400 font-semibold">Optional</span>
+                  )}
+                </div>
+                <input
+                  type="text"
+                  value={referralCodeInput}
+                  onChange={(e) => setReferralCodeInput(e.target.value.toUpperCase())}
+                  placeholder="e.g. TIBEB-84F2 (Leave blank if you don't have one)"
+                  className="w-full px-4 py-2.5 bg-white border border-amber-200 focus:border-[#0B5D3B] focus:ring-2 focus:ring-emerald-500/10 rounded-xl text-ink font-mono font-bold text-sm placeholder:text-gray-400 placeholder:font-sans uppercase outline-none"
+                />
+                <p className="text-[11px] text-amber-900/80 leading-relaxed">
+                  Did a friend or classmate invite you? Enter their code above. If you don&apos;t have one, that&apos;s totally okay—leave it blank!
+                </p>
               </div>
 
               <Button

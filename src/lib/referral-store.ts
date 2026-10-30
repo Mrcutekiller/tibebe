@@ -312,3 +312,4 @@ export async function transferReferralToMainWallet(
     return { success: false, error: err?.message || 'Transfer failed' };
   }
 }
+
