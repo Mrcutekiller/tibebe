@@ -128,3 +128,4 @@ export async function updateTelegramOrderStatus(
     console.error('Error updating telegram order in Supabase:', err);
   }
 }
+

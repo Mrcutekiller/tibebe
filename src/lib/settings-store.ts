@@ -120,3 +120,4 @@ export async function updateRemoteSettings(settings: Partial<TibebSettings>): Pr
   }
   return updated;
 }
+
