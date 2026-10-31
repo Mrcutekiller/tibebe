@@ -40,5 +40,5 @@ This automatically configures canonical SEO URLs, Open Graph link previews, and 
 ## 🛠️ Tech Stack & Security
 - **Framework**: Next.js 16 (App Router, Turbopack, Standalone SSR/PWA)
 - **Database & Auth**: Supabase PostgreSQL with strict Row Level Security (RLS)
-- **Payments**: Telebirr & Chapa with server-side webhook signature verification
+- **Payments**: Telebirr & CBE with server-side webhook signature verification
 - **Offline Mode**: Service Worker with dorm caching and `/offline.html` fallback

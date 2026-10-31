@@ -225,7 +225,7 @@ function SuccessContent() {
           <div className="flex items-center gap-2.5 p-3 rounded-xl bg-slate-50 border border-gray-100 text-[11px] text-gray-500">
             <ShieldCheck size={16} className="text-green flex-shrink-0" />
             <span>
-              Your purchase is recorded with Ethio Telecom / Chapa and backed by Tibeb&apos;s 30-day money-back guarantee.
+              Your purchase is recorded with Telebirr / CBE and backed by Tibeb&apos;s 30-day money-back guarantee.
             </span>
           </div>
 

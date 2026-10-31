@@ -19,7 +19,7 @@ interface FAQ {
 const FAQS: FAQ[] = [
   {
     q: 'How do I access an exam after paying?',
-    a: 'After successful payment via Telebirr or Chapa, the exam is instantly unlocked in your library. Go to Dashboard → My Library → Unlocked Tests to start your interactive test session.',
+    a: 'After successful payment via Telebirr or CBE, the exam is instantly unlocked in your library. Go to Dashboard → My Library → Unlocked Tests to start your interactive test session.',
   },
   {
     q: 'Why can\'t I see the exam I purchased?',
@@ -35,7 +35,7 @@ const FAQS: FAQ[] = [
   },
   {
     q: 'What payment methods are accepted?',
-    a: 'We accept Telebirr (Ethio Telecom), Chapa (supports CBE Birr, Awash, Dashen, and cards). All transactions are encrypted and refundable within 30 days.',
+    a: 'We accept Telebirr (Ethio Telecom) and Commercial Bank of Ethiopia (CBE / CBE Birr). All transactions are encrypted and refundable within 30 days.',
   },
   {
     q: 'How do I get a refund?',

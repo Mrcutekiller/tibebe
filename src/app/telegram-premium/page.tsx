@@ -125,7 +125,7 @@ export default function TelegramPremiumPage() {
     },
     {
       q: 'Can I pay using Telebirr or CBE Birr?',
-      a: 'Yes! Tibeb allows you to pay easily in Ethiopian Birr (ETB) using Telebirr, CBE Birr, Chapa, or your Tibeb student wallet balance. No international Visa or Mastercard needed.'
+      a: 'Yes! Tibeb allows you to pay easily in Ethiopian Birr (ETB) using Telebirr, CBE Birr, or your Tibeb student wallet balance. No international Visa or Mastercard needed.'
     },
     {
       q: 'How long does delivery take?',
@@ -403,7 +403,7 @@ export default function TelegramPremiumPage() {
               </span>
               <h3 className="font-bold text-lg mb-2">Pay in ETB</h3>
               <p className="text-xs text-white/70 leading-relaxed">
-                Complete payment instantly using Telebirr, CBE Birr, or Chapa.
+                Complete payment instantly using Telebirr or CBE Birr.
               </p>
             </div>
 

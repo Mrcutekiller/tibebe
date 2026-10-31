@@ -63,7 +63,7 @@ export default function AuthGuard({ children, message, reason = 'access' }: Auth
                 <p className="text-sm text-gray-500 leading-relaxed">
                   {message || (
                     isPurchase
-                      ? 'You need a Tibeb account to buy exam papers and courses. Join thousands of Ethiopian university students!'
+                      ? 'You need a Tibeb account to buy exam papers and courses. Unlock genuine past exams with verified solutions.'
                       : 'This content is for registered Tibeb students. Create your free account and start studying smarter.'
                   )}
                 </p>
@@ -74,7 +74,7 @@ export default function AuthGuard({ children, message, reason = 'access' }: Auth
                 {[
                   { icon: Zap, text: 'Unlock 20 ETB past exam papers with answers' },
                   { icon: BookOpen, text: 'Access certified courses & study materials' },
-                  { icon: Shield, text: 'Pay securely via Telebirr or Chapa' },
+                  { icon: Shield, text: 'Pay securely via Telebirr or CBE' },
                 ].map(({ icon: Icon, text }) => (
                   <div key={text} className="flex items-center gap-3 p-3 rounded-xl bg-slate-50">
                     <div className="w-7 h-7 rounded-lg bg-green-muted flex items-center justify-center flex-shrink-0">

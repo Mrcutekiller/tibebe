@@ -35,14 +35,14 @@ export const metadata: Metadata = {
     default: "Tibeb — Study Smarter, Pass with Confidence",
     template: "%s | Tibeb",
   },
-  description: "Past exam tests for Ethiopian university students, and Telegram Premium. Study with answers and explanations. Pay with Telebirr or Chapa.",
+  description: "Past exam tests for Ethiopian university students, and Telegram Premium. Study with answers and explanations. Pay with Telebirr or CBE.",
   keywords: ["Ethiopia university exams", "past exam papers", "AAU exams", "study materials Ethiopia", "Telegram Premium Ethiopia"],
   openGraph: {
     type: "website",
     locale: "en_ET",
     siteName: "Tibeb",
     title: "Tibeb — Study Smarter, Pass with Confidence",
-    description: "Past exam tests for Ethiopian university students, and Telegram Premium. Study with answers and explanations. Pay with Telebirr or Chapa.",
+    description: "Past exam tests for Ethiopian university students, and Telegram Premium. Study with answers and explanations. Pay with Telebirr or CBE.",
     images: [
       {
         url: "/og-image.png",
@@ -55,7 +55,7 @@ export const metadata: Metadata = {
   twitter: {
     card: "summary_large_image",
     title: "Tibeb — Past Exam Tests & Telegram Premium",
-    description: "Study with answers and explanations. Pay with Telebirr or Chapa.",
+    description: "Study with answers and explanations. Pay with Telebirr or CBE.",
     images: ["/og-image.png"],
   },
   alternates: {

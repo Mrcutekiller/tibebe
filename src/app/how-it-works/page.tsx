@@ -37,7 +37,7 @@ export default function HowItWorksPage() {
     {
       num: '02',
       title: 'Instant 20 ETB Unlock with Telebirr',
-      desc: 'No credit cards needed. Unlock full past exam papers, midterm solutions, or practice tests for just 20 ETB using Telebirr, CBE Birr, or Chapa. Access is instant and saved to your account forever.',
+      desc: 'No credit cards needed. Unlock full past exam papers, midterm solutions, or practice tests for just 20 ETB using Telebirr or CBE Birr. Access is instant and saved to your account forever.',
       icon: Smartphone,
       tag: 'Step 2'
     },
@@ -64,7 +64,7 @@ export default function HowItWorksPage() {
     },
     {
       q: 'Which payment methods are accepted in Ethiopia?',
-      a: 'We support Telebirr (via direct USSD or app), CBE Birr, Bank of Abyssinia, and all Ethiopian local debit cards via Chapa. Payment confirmation takes less than 10 seconds.'
+      a: 'We support Telebirr (via direct USSD or app) and Commercial Bank of Ethiopia (CBE / CBE Birr). Payment confirmation takes less than 30 seconds.'
     },
     {
       q: 'Are the answer keys verified?',

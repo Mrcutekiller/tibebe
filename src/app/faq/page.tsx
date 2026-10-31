@@ -21,8 +21,8 @@ export default function FaqPage() {
   const faqs: FaqItem[] = [
     {
       category: 'payments',
-      q: 'How do I pay using Telebirr, Chapa, or CBE Birr?',
-      a: 'You can pay instantly via Telebirr or CBE Birr through our integrated Chapa payment gateway, or by sending a direct Telebirr/CBE transfer and uploading the confirmation receipt. Once confirmed on the server, your exam test unlocks immediately in your Library.'
+      q: 'How do I pay using Telebirr or CBE Birr?',
+      a: 'You can pay instantly via Telebirr or Commercial Bank of Ethiopia (CBE / CBE Birr) by transferring to our official verified accounts and submitting your transaction reference or receipt. Once confirmed on the server, your exam test unlocks immediately in your Library.'
     },
     {
       category: 'delivery',

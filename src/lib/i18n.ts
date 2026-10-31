@@ -25,7 +25,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     // Hero
     'hero.title1': 'Past exam tests for Ethiopian university students,',
     'hero.title2': 'and Telegram Premium.',
-    'hero.subtitle': 'Study with answers and explanations. Pay with Telebirr or Chapa.',
+    'hero.subtitle': 'Study with answers and explanations. Pay with Telebirr or CBE.',
     'hero.cta.browse': 'Browse Tests',
     'hero.cta.telegram': 'Get Telegram Premium',
     'hero.cta.signup': 'Get Started Free',
@@ -144,7 +144,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     'how.step1.title': 'Pick your campus.',
     'how.step1.desc': 'Select your university and department. We show you what matters for your exams.',
     'how.step2.title': 'Unlock the content.',
-    'how.step2.desc': 'Buy past exam papers, courses, or bundles. Pay securely via Chapa or Telebirr.',
+    'how.step2.desc': 'Buy past exam papers, courses, or bundles. Pay securely via Telebirr or CBE.',
     'how.step3.title': 'Study and succeed.',
     'how.step3.desc': 'Read papers with full answers and explanations. Take quizzes, earn certificates.',
     // Stats
@@ -196,7 +196,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     'nav.logout': 'Log Out',
     'hero.title1': 'Past exam tests for Ethiopian university students,',
     'hero.title2': 'and Telegram Premium.',
-    'hero.subtitle': 'Study with answers and explanations. Pay with Telebirr or Chapa.',
+    'hero.subtitle': 'Study with answers and explanations. Pay with Telebirr or CBE.',
     'hero.cta.browse': 'Browse Tests',
     'hero.cta.telegram': 'Get Telegram Premium',
     'hero.cta.signup': 'Get Started Free',

@@ -77,7 +77,7 @@ export default function CoreProductsAndPricing() {
                 </div>
                 <div className="flex items-center gap-2">
                   <Check size={14} className="text-emerald-600 flex-shrink-0" />
-                  <span>Pay effortlessly via Telebirr, Chapa, or CBE</span>
+                  <span>Pay effortlessly via Telebirr or CBE</span>
                 </div>
               </div>
             </div>
@@ -166,7 +166,7 @@ export default function CoreProductsAndPricing() {
             Transparent Pricing in Ethiopian Birr (ETB)
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
-            No hidden fees. Every price is straightforward, student-friendly, and payable via Telebirr or Chapa.
+            No hidden fees. Every price is straightforward, student-friendly, and payable via Telebirr or CBE.
           </p>
         </div>
 
@@ -248,7 +248,7 @@ export default function CoreProductsAndPricing() {
       </section>
 
       {/* =========================================================================
-          3. HOW TO PAY STEPS (Telebirr & Chapa)
+          3. HOW TO PAY STEPS (Telebirr & CBE)
          ========================================================================= */}
       <section className="container-tibeb max-w-5xl px-4">
         <div className="text-center mb-10 space-y-2">
@@ -256,7 +256,7 @@ export default function CoreProductsAndPricing() {
             Payment Guide
           </span>
           <h2 className="text-2xl sm:text-4xl font-black text-ink tracking-tight">
-            How to Pay with Telebirr or Chapa
+            How to Pay with Telebirr or CBE
           </h2>
           <p className="text-xs sm:text-sm text-gray-500 max-w-md mx-auto">
             3 simple steps to unlock exam tests or activate your Telegram Premium subscription.
@@ -270,7 +270,7 @@ export default function CoreProductsAndPricing() {
             </div>
             <h3 className="font-bold text-ink text-sm">Select Your Test or Plan</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Browse your university exam bank or choose a 1, 3, 6, or 12-month Telegram Premium plan.
+              Browse your university exam bank or choose a 3, 6, or 12-month Telegram Premium plan.
             </p>
           </div>
 
@@ -278,9 +278,9 @@ export default function CoreProductsAndPricing() {
             <div className="w-12 h-12 rounded-2xl bg-amber-50 text-gold flex items-center justify-center font-black mx-auto text-base">
               2
             </div>
-            <h3 className="font-bold text-ink text-sm">Confirm with Telebirr / Chapa</h3>
+            <h3 className="font-bold text-ink text-sm">Confirm with Telebirr or CBE</h3>
             <p className="text-xs text-gray-500 leading-relaxed">
-              Open your Telebirr app or pay securely through Chapa gateway. CBE transfer receipt upload is also supported.
+              Pay instantly via Telebirr (Ethio Telecom) or Commercial Bank of Ethiopia (CBE / CBE Birr). Fast automatic confirmation.
             </p>
           </div>
 

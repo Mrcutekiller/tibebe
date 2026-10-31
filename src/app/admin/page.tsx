@@ -120,7 +120,7 @@ export default function AdminPortalPage() {
       localStorage.setItem('tibeb_payment_test_mode', enabled.toString());
       window.dispatchEvent(new Event('storage'));
     }
-    toast.success(enabled ? 'Test Mode Enabled: Payments run as TEST without real funds.' : 'Live Mode Enabled: Real Telebirr/Chapa payments active.', {
+    toast.success(enabled ? 'Test Mode Enabled: Payments run as TEST without real funds.' : 'Live Mode Enabled: Real Telebirr/CBE payments active.', {
       icon: enabled ? '🧪' : '🟢',
     });
   };
@@ -1713,7 +1713,7 @@ export default function AdminPortalPage() {
                 {adminTgOrders.length === 0 ? (
                   <div className="text-center py-12 text-gray-400 text-xs">
                     <p className="font-bold text-sm text-gray-500 mb-1">No Telegram Premium orders yet</p>
-                    <p>When students order Telegram Premium via Telebirr or Chapa, orders will appear here live.</p>
+                    <p>When students order Telegram Premium via Telebirr or CBE, orders will appear here live.</p>
                   </div>
                 ) : (
                   <div className="overflow-x-auto">

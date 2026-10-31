@@ -44,8 +44,8 @@ export const DEFAULT_SETTINGS: TibebSettings = {
   social_tiktok: '',
   payment_methods: {
     telebirr: true,
-    chapa: true,
     cbe: true,
+    chapa: false,
   },
   test_mode: false,
   exam_price_etb: 20,
@@ -56,7 +56,7 @@ export const DEFAULT_SETTINGS: TibebSettings = {
     { id: 'tg-12m', months: 12, label: '12 Months', price: 4600, savings: 'Save 22%' },
   ],
   refund_policy_summary: 'Full refund within 24 hours if test solutions have missing questions or severe formatting errors, or if Telegram Premium is not delivered within 2 hours.',
-  refund_policy_full: `1. Exam Tests: If an unlocked exam contains missing pages, unreadable questions, or incorrect answer keys, submit a report within 24 hours for a full refund back to your Telebirr/Chapa account or Tibeb wallet.\n2. Telegram Premium: If your subscription is not activated within 2 hours of payment confirmation, our support will immediately verify and either deliver manually or refund 100% of your payment.\n3. Transparent Guarantee: We never hold your funds hostage. All requests are processed within 1 business day.`,
+  refund_policy_full: `1. Exam Tests: If an unlocked exam contains missing pages, unreadable questions, or incorrect answer keys, submit a report within 24 hours for a full refund back to your Telebirr or CBE account or Tibeb wallet.\n2. Telegram Premium: If your subscription is not activated within 2 hours of payment confirmation, our support will immediately verify and either deliver manually or refund 100% of your payment.\n3. Transparent Guarantee: We never hold your funds hostage. All requests are processed within 1 business day.`,
 };
 
 const SETTINGS_KEY = 'tibeb_system_settings';

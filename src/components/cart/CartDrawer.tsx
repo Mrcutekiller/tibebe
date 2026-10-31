@@ -302,13 +302,13 @@ export default function CartDrawer() {
                     : `Wallet Balance Low (Need ${finalTotal - walletBalance} ETB)`}
                 </button>
 
-                {/* Direct Live Telebirr / Chapa Pay */}
+                {/* Direct Live Telebirr / CBE Pay */}
                 <button
                   onClick={handleDirectCheckout}
                   className="w-full py-3 px-4 rounded-2xl border-2 border-ink text-ink hover:bg-ink hover:text-white font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all active:scale-95"
                 >
                   <CreditCard size={15} />
-                  Pay with Telebirr / Chapa
+                  Pay with Telebirr or CBE
                 </button>
               </div>
 
