@@ -7,13 +7,14 @@ import {
   Zap, Sparkles, CreditCard, HelpCircle, FileText,
   Clock, RotateCcw, Smartphone
 } from 'lucide-react';
-import { getLocalSettings, type TibebSettings } from '@/lib/settings-store';
+import { DEFAULT_SETTINGS, getLocalSettings, type TibebSettings } from '@/lib/settings-store';
 import { EXAMS } from '@/lib/seed-data';
 
 export default function CoreProductsAndPricing() {
-  const [settings, setSettings] = useState<TibebSettings>(getLocalSettings());
+  const [settings, setSettings] = useState<TibebSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    setSettings(getLocalSettings());
     const update = () => setSettings(getLocalSettings());
     window.addEventListener('tibeb_settings_updated', update);
     window.addEventListener('storage', update);
@@ -51,7 +52,7 @@ export default function CoreProductsAndPricing() {
                 <div className="w-12 h-12 rounded-2xl bg-emerald-50 text-[#0B5D3B] flex items-center justify-center font-bold text-xl">
                   <BookOpen size={24} />
                 </div>
-                <span className="px-3 py-1 rounded-full bg-emerald-50 text-[#0B5D3B] text-xs font-black border border-emerald-200">
+                <span suppressHydrationWarning className="px-3 py-1 rounded-full bg-emerald-50 text-[#0B5D3B] text-xs font-black border border-emerald-200">
                   {settings.exam_price_etb} ETB / Test
                 </span>
               </div>
@@ -107,7 +108,7 @@ export default function CoreProductsAndPricing() {
                 <div className="w-12 h-12 rounded-2xl bg-amber-50 text-gold flex items-center justify-center font-bold text-xl">
                   <Send size={24} />
                 </div>
-                <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-black border border-amber-200">
+                <span suppressHydrationWarning className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-black border border-amber-200">
                   From {settings.telegram_premium_plans[0]?.price || 1390} ETB
                 </span>
               </div>

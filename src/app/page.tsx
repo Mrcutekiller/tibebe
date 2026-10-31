@@ -796,6 +796,11 @@ function FeaturedExamSection() {
 // ABOUT TIBEB SECTION (id="about")
 // =====================================================
 function AboutSection() {
+  const [competitionsEnabled, setCompetitionsEnabled] = useState(false);
+  useEffect(() => {
+    setCompetitionsEnabled(getLocalSettings().competitions_enabled);
+  }, []);
+
   return (
     <section id="about" className="py-20 sm:py-28 bg-[#FAF7F0] relative overflow-hidden border-t border-gray-200/60">
       <div className="container-tibeb px-4">
@@ -850,7 +855,7 @@ function AboutSection() {
             </p>
           </div>
 
-          {getLocalSettings().competitions_enabled ? (
+          {competitionsEnabled ? (
             <div className="bg-white p-6 rounded-3xl border border-gray-200 shadow-xs space-y-3">
               <div className="w-12 h-12 rounded-2xl bg-purple-100 text-purple-800 flex items-center justify-center font-black text-xl">
                 🏆
@@ -881,7 +886,11 @@ function AboutSection() {
 // WHY CHOOSE US SECTION (id="why-choose-us")
 // =====================================================
 function WhyChooseUsSection() {
-  const settings = getLocalSettings();
+  const [competitionsEnabled, setCompetitionsEnabled] = useState(false);
+  useEffect(() => {
+    setCompetitionsEnabled(getLocalSettings().competitions_enabled);
+  }, []);
+
   const features = [
     {
       icon: FileText,
@@ -901,12 +910,17 @@ function WhyChooseUsSection() {
       desc: 'Download once and read anywhere. Built-in fast PDF viewer with anti-piracy watermarking.',
       emoji: '📥',
     },
-    {
+    ...(competitionsEnabled ? [{
       icon: Trophy,
-      title: '1,000 ETB Monthly Competitions',
+      title: 'Monthly Cash Prizes',
       desc: 'Take interactive quizzes from your university courses and climb the Top 20 for cash rewards.',
       emoji: '🏆',
-    },
+    }] : [{
+      icon: Sparkles,
+      title: 'Fast Telegram Subscriptions',
+      desc: 'Official Telegram Premium delivery without an international credit card.',
+      emoji: '⭐',
+    }]),
     {
       icon: GraduationCap,
       title: 'Multi-University Coverage',

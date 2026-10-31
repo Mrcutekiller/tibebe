@@ -66,7 +66,16 @@ export function getLocalSettings(): TibebSettings {
   try {
     const raw = localStorage.getItem(SETTINGS_KEY);
     if (!raw) return DEFAULT_SETTINGS;
-    return { ...DEFAULT_SETTINGS, ...JSON.parse(raw) };
+    const parsed = JSON.parse(raw);
+    if (parsed.telegram_premium_plans && Array.isArray(parsed.telegram_premium_plans)) {
+      parsed.telegram_premium_plans = parsed.telegram_premium_plans.filter(
+        (p: TelegramPremiumPlan) => p.months !== 1 && p.id !== 'tg-1m'
+      );
+      if (parsed.telegram_premium_plans.length === 0) {
+        parsed.telegram_premium_plans = DEFAULT_SETTINGS.telegram_premium_plans;
+      }
+    }
+    return { ...DEFAULT_SETTINGS, ...parsed };
   } catch {
     return DEFAULT_SETTINGS;
   }

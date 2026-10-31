@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect } from 'react';
 import { usePathname } from 'next/navigation';
 import Navbar from './Navbar';
 import Footer from './Footer';
@@ -14,6 +14,14 @@ export default function ClientLayout({ children }: { children: React.ReactNode }
 
   // "on the landing page add the navigation only there ok"
   // ONLY render Navbar on the landing page ('/')
+    useEffect(() => {
+    if (typeof window !== 'undefined' && 'serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('/sw.js').catch(() => {});
+      });
+    }
+  }, []);
+
   const isLanding = pathname === '/';
   const showNavbar = isLanding;
 

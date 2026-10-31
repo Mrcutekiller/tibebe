@@ -2,13 +2,14 @@
 
 import React, { useState, useEffect } from 'react';
 import { MessageCircle, Send, X, Headphones, ExternalLink } from 'lucide-react';
-import { getLocalSettings, type TibebSettings } from '@/lib/settings-store';
+import { DEFAULT_SETTINGS, getLocalSettings, type TibebSettings } from '@/lib/settings-store';
 
 export default function FloatingSupportButton() {
   const [isOpen, setIsOpen] = useState(false);
-  const [settings, setSettings] = useState<TibebSettings>(getLocalSettings());
+  const [settings, setSettings] = useState<TibebSettings>(DEFAULT_SETTINGS);
 
   useEffect(() => {
+    setSettings(getLocalSettings());
     const update = () => setSettings(getLocalSettings());
     window.addEventListener('tibeb_settings_updated', update);
     window.addEventListener('storage', update);

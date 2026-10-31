@@ -84,17 +84,6 @@ export default function RootLayout({
   return (
     <html lang="en" data-scroll-behavior="smooth" suppressHydrationWarning className={`${poppins.variable} ${notoEthiopic.variable}`}>
       <body className={poppins.className}>
-        <script
-          dangerouslySetInnerHTML={{
-            __html: `
-              if ('serviceWorker' in navigator) {
-                window.addEventListener('load', function() {
-                  navigator.serviceWorker.register('/sw.js').catch(function(){});
-                });
-              }
-            `,
-          }}
-        />
         <AuthProvider>
           <LanguageProvider>
             <CartProvider>
