@@ -20,6 +20,7 @@ import { Badge, StarRating } from '@/components/ui/Badge';
 import { EXAMS, UNIVERSITIES, TELEGRAM_PREMIUM_PLANS } from '@/lib/seed-data';
 import InstallAppSection from '@/components/pwa/InstallAppSection';
 import CoreProductsAndPricing from '@/components/home/CoreProductsAndPricing';
+import ReferralProgramSection from '@/components/home/ReferralProgramSection';
 import { formatPrice } from '@/lib/utils';
 
 // Stagger animation presets
@@ -1417,6 +1418,7 @@ export default function LandingPage() {
 
       <HeroSection />
       <CoreProductsAndPricing />
+      <ReferralProgramSection />
       <AboutSection />
       <WhyChooseUsSection />
       <DownloadAppSection />
