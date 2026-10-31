@@ -108,7 +108,7 @@ export default function CoreProductsAndPricing() {
                   <Send size={24} />
                 </div>
                 <span className="px-3 py-1 rounded-full bg-amber-50 text-amber-900 text-xs font-black border border-amber-200">
-                  From {settings.telegram_premium_plans[0]?.price || 490} ETB
+                  From {settings.telegram_premium_plans[0]?.price || 1390} ETB
                 </span>
               </div>
 
@@ -146,7 +146,7 @@ export default function CoreProductsAndPricing() {
                 <ArrowRight size={15} />
               </Link>
               <span className="text-[11px] text-gray-400 text-center block">
-                1, 3, 6, and 12-month plans available
+                3, 6, and 12-month plans available
               </span>
             </div>
           </div>
@@ -189,7 +189,7 @@ export default function CoreProductsAndPricing() {
           </div>
 
           {/* Telegram Plans */}
-          {settings.telegram_premium_plans.slice(0, 3).map((plan) => (
+          {settings.telegram_premium_plans.map((plan) => (
             <div
               key={plan.id}
               className={`bg-white rounded-3xl p-6 border shadow-sm flex flex-col justify-between text-center relative ${

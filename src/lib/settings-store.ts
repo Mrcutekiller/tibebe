@@ -51,7 +51,6 @@ export const DEFAULT_SETTINGS: TibebSettings = {
   exam_price_etb: 20,
   bundle_discount_percent: 20,
   telegram_premium_plans: [
-    { id: 'tg-1m', months: 1, label: '1 Month', price: 490 },
     { id: 'tg-3m', months: 3, label: '3 Months', price: 1390, popular: true, savings: 'Save 5%' },
     { id: 'tg-6m', months: 6, label: '6 Months', price: 2550, savings: 'Save 13%' },
     { id: 'tg-12m', months: 12, label: '12 Months', price: 4600, savings: 'Save 22%' },

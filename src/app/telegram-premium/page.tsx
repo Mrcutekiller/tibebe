@@ -393,7 +393,7 @@ export default function TelegramPremiumPage() {
               </span>
               <h3 className="font-bold text-lg mb-2">Select Your Plan</h3>
               <p className="text-xs text-white/70 leading-relaxed">
-                Choose 1, 3, 6, or 12 months, and enter your Telegram @username.
+                Choose 3, 6, or 12 months, and enter your Telegram @username.
               </p>
             </div>
 
